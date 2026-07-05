@@ -1,0 +1,11 @@
+/build/
+/dist/
+/.cache/
+/VERSION
+compile_commands.json
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.exe

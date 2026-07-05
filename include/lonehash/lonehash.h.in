@@ -1,0 +1,75 @@
+#ifndef LONEHASH_LONEHASH_H
+#define LONEHASH_LONEHASH_H
+
+#include <stddef.h>
+#include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define LONEHASH_VERSION_MAJOR @LONEHASH_VERSION_MAJOR@
+#define LONEHASH_VERSION_MINOR @LONEHASH_VERSION_MINOR@
+#define LONEHASH_VERSION_PATCH @LONEHASH_VERSION_PATCH@
+#define LONEHASH_VERSION "@LONEHASH_VERSION@"
+
+#define LONEHASH_SHA256_DIGEST_SIZE 32
+#define LONEHASH_SHA256_BLOCK_SIZE 64
+#define LONEHASH_SHA256_HEX_SIZE 65
+
+#define LONEHASH_MD5_DIGEST_SIZE 16
+#define LONEHASH_MD5_BLOCK_SIZE 64
+#define LONEHASH_MD5_HEX_SIZE 33
+
+typedef enum lonehash_status {
+  LONEHASH_OK = 0,
+  LONEHASH_ERROR_NULL = 1,
+  LONEHASH_ERROR_ALLOC = 2,
+  LONEHASH_ERROR_IO = 3
+} lonehash_status;
+
+typedef struct lonehash_sha256 lonehash_sha256;
+typedef struct lonehash_md5 lonehash_md5;
+
+struct lonehash_sha256 {
+  lonehash_status (*reset)(lonehash_sha256 *self);
+  lonehash_status (*update)(lonehash_sha256 *self, const void *data,
+                            size_t len);
+  lonehash_status (*final)(lonehash_sha256 *self, unsigned char digest[32]);
+  lonehash_status (*digest_buffer)(lonehash_sha256 *self, const void *data,
+                                   size_t len, unsigned char digest[32]);
+  lonehash_status (*digest_file)(lonehash_sha256 *self, FILE *file,
+                                 unsigned char digest[32]);
+  lonehash_status (*digest_path)(lonehash_sha256 *self, const char *path,
+                                 unsigned char digest[32]);
+  void (*hex)(const lonehash_sha256 *self, const unsigned char digest[32],
+              char hex[65]);
+  void *impl;
+};
+
+struct lonehash_md5 {
+  lonehash_status (*reset)(lonehash_md5 *self);
+  lonehash_status (*update)(lonehash_md5 *self, const void *data, size_t len);
+  lonehash_status (*final)(lonehash_md5 *self, unsigned char digest[16]);
+  lonehash_status (*digest_buffer)(lonehash_md5 *self, const void *data,
+                                   size_t len, unsigned char digest[16]);
+  lonehash_status (*digest_file)(lonehash_md5 *self, FILE *file,
+                                 unsigned char digest[16]);
+  lonehash_status (*digest_path)(lonehash_md5 *self, const char *path,
+                                 unsigned char digest[16]);
+  void (*hex)(const lonehash_md5 *self, const unsigned char digest[16],
+              char hex[33]);
+  void *impl;
+};
+
+const char *lonehash_status_string(lonehash_status status);
+lonehash_status lonehash_sha256_create(lonehash_sha256 **out);
+void lonehash_sha256_destroy(lonehash_sha256 *self);
+lonehash_status lonehash_md5_create(lonehash_md5 **out);
+void lonehash_md5_destroy(lonehash_md5 *self);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

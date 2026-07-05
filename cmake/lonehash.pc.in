@@ -1,0 +1,10 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: lonehash
+Description: C89 SHA-256 and MD5 library with receiver-style streaming APIs
+Version: @LONEHASH_VERSION@
+Libs: -L${libdir} -llonehash
+Cflags: -I${includedir}

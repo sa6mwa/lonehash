@@ -1,0 +1,171 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "LONEHASH_BUILD_STATIC": "ON",
+        "LONEHASH_BUILD_SHARED": "ON",
+        "LONEHASH_BUILD_EXAMPLES": "ON",
+        "LONEHASH_BUILD_TESTS": "ON",
+        "LONEHASH_BUILD_BENCHMARKS": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "asan",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LONEHASH_TARGET_ID": "host"
+      }
+    },
+    {
+      "name": "x86_64-linux-gnu-release",
+      "inherits": "base",
+      "environment": {
+        "LONEHASH_TARGET_ID": "x86_64-linux-gnu"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LONEHASH_TARGET_ID": "x86_64-linux-gnu",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
+      }
+    },
+    {
+      "name": "x86_64-linux-musl-release",
+      "inherits": "base",
+      "environment": {
+        "LONEHASH_TARGET_ID": "x86_64-linux-musl"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LONEHASH_TARGET_ID": "x86_64-linux-musl",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
+      }
+    },
+    {
+      "name": "aarch64-linux-gnu-release",
+      "inherits": "base",
+      "environment": {
+        "LONEHASH_TARGET_ID": "aarch64-linux-gnu"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LONEHASH_TARGET_ID": "aarch64-linux-gnu",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
+      }
+    },
+    {
+      "name": "aarch64-linux-musl-release",
+      "inherits": "base",
+      "environment": {
+        "LONEHASH_TARGET_ID": "aarch64-linux-musl"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LONEHASH_TARGET_ID": "aarch64-linux-musl",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
+      }
+    },
+    {
+      "name": "armhf-linux-gnu-release",
+      "inherits": "base",
+      "environment": {
+        "LONEHASH_TARGET_ID": "armhf-linux-gnu"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LONEHASH_TARGET_ID": "armhf-linux-gnu",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
+      }
+    },
+    {
+      "name": "armhf-linux-musl-release",
+      "inherits": "base",
+      "environment": {
+        "LONEHASH_TARGET_ID": "armhf-linux-musl"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LONEHASH_TARGET_ID": "armhf-linux-musl",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
+      }
+    },
+    {
+      "name": "arm64-apple-darwin-release",
+      "inherits": "base",
+      "environment": {
+        "LONEHASH_TARGET_ID": "arm64-apple-darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LONEHASH_TARGET_ID": "arm64-apple-darwin",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "release", "configurePreset": "release" },
+    {
+      "name": "x86_64-linux-gnu-release",
+      "configurePreset": "x86_64-linux-gnu-release"
+    },
+    {
+      "name": "x86_64-linux-musl-release",
+      "configurePreset": "x86_64-linux-musl-release"
+    },
+    {
+      "name": "aarch64-linux-gnu-release",
+      "configurePreset": "aarch64-linux-gnu-release"
+    },
+    {
+      "name": "aarch64-linux-musl-release",
+      "configurePreset": "aarch64-linux-musl-release"
+    },
+    {
+      "name": "armhf-linux-gnu-release",
+      "configurePreset": "armhf-linux-gnu-release"
+    },
+    {
+      "name": "armhf-linux-musl-release",
+      "configurePreset": "armhf-linux-musl-release"
+    },
+    {
+      "name": "arm64-apple-darwin-release",
+      "configurePreset": "arm64-apple-darwin-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}
