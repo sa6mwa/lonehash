@@ -22,6 +22,27 @@ static void lh_usage(FILE *out, const char *prog) {
   fprintf(out, "usage: %s [--sha256|-s] [--md5|-5] [-z] [FILE]...\n", prog);
 }
 
+static int lh_parse_short_options(const char *arg, lh_algorithm *alg, int *nul,
+                                  char *bad) {
+  const char *p;
+
+  p = arg + 1;
+  while (*p != '\0') {
+    if (*p == '5') {
+      *alg = LH_ALG_MD5;
+    } else if (*p == 's') {
+      *alg = LH_ALG_SHA256;
+    } else if (*p == 'z') {
+      *nul = 1;
+    } else {
+      *bad = *p;
+      return 1;
+    }
+    ++p;
+  }
+  return 0;
+}
+
 static int lh_digest_stream(lh_algorithm alg, FILE *file, char *hex) {
   lonehash_sha256 *sha = NULL;
   lonehash_md5 *md5 = NULL;
@@ -112,9 +133,14 @@ int main(int argc, char **argv) {
       nul = 1;
     } else if (argv[i][0] == '-' && argv[i][1] != '\0' &&
                strcmp(argv[i], "-") != 0) {
-      fprintf(stderr, "%s: unknown option: %s\n", prog, argv[i]);
-      lh_usage(stderr, prog);
-      return 2;
+      char bad;
+
+      bad = '\0';
+      if (lh_parse_short_options(argv[i], &alg, &nul, &bad) != 0) {
+        fprintf(stderr, "%s: unknown option: -%c\n", prog, bad);
+        lh_usage(stderr, prog);
+        return 2;
+      }
     } else {
       first_file = i;
       break;

@@ -22,3 +22,12 @@ bytes=$(wc -c <"$tmp/nul.out" | tr -d ' ')
 test "$bytes" = "36"
 tail_byte=$(od -An -tx1 -N1 -j35 "$tmp/nul.out" | tr -d ' \n')
 test "$tail_byte" = "00"
+
+printf abc | "$lh" -5z >"$tmp/cluster.out"
+cluster_bytes=$(wc -c <"$tmp/cluster.out" | tr -d ' ')
+test "$cluster_bytes" = "36"
+cluster_prefix=$(LC_ALL=C tr '\000' '\n' <"$tmp/cluster.out")
+test "$cluster_prefix" = "900150983cd24fb0d6963f7d28e17f72  -"
+
+cluster_sha=$(printf abc | "$lh" -5zs)
+test "$cluster_sha" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  -"
