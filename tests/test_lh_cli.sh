@@ -38,6 +38,14 @@ test "$quiet_raw_bytes" = "64"
 quiet_raw=$(cat "$tmp/quiet-raw.out")
 test "$quiet_raw" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 
+for opts in -szq -zqs -qsz; do
+  printf abc | "$lh" "$opts" >"$tmp/quiet-cluster.out"
+  quiet_cluster_bytes=$(wc -c <"$tmp/quiet-cluster.out" | tr -d ' ')
+  test "$quiet_cluster_bytes" = "64"
+  quiet_cluster=$(cat "$tmp/quiet-cluster.out")
+  test "$quiet_cluster" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+done
+
 quiet_file=$("$lh" --md5 --quiet "$tmp/abc.txt")
 test "$quiet_file" = "900150983cd24fb0d6963f7d28e17f72"
 
