@@ -13,6 +13,12 @@
 
 typedef unsigned int lh_u32;
 
+#if LONEHASH_HAVE_SHA_NI
+int lonehash_sha256_ni_available(void);
+void lonehash_sha256_ni_transform(lh_u32 state[8],
+                                  const unsigned char block[64]);
+#endif
+
 typedef struct lh_sha256_impl {
   lh_u32 state[8];
   lh_u32 bit_count_low;
@@ -129,20 +135,43 @@ static const lh_u32 lh_sha256_k[64] = {
     0x682e6ff3UL, 0x748f82eeUL, 0x78a5636fUL, 0x84c87814UL, 0x8cc70208UL,
     0x90befffaUL, 0xa4506cebUL, 0xbef9a3f7UL, 0xc67178f2UL};
 
-static void lh_sha256_transform(lh_sha256_impl *ctx,
-                                const unsigned char block[64]) {
-  lh_u32 w[64];
+#define LH_SHA256_CH(x, y, z) (((x) & (y)) ^ (~(x) & (z)))
+#define LH_SHA256_MAJ(x, y, z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
+#define LH_SHA256_BSIG0(x)                                                     \
+  (lh_rotr((x), 2) ^ lh_rotr((x), 13) ^ lh_rotr((x), 22))
+#define LH_SHA256_BSIG1(x)                                                     \
+  (lh_rotr((x), 6) ^ lh_rotr((x), 11) ^ lh_rotr((x), 25))
+#define LH_SHA256_SSIG0(x) (lh_rotr((x), 7) ^ lh_rotr((x), 18) ^ ((x) >> 3))
+#define LH_SHA256_SSIG1(x) (lh_rotr((x), 17) ^ lh_rotr((x), 19) ^ ((x) >> 10))
+#define LH_SHA256_ROUND(a, b, c, d, e, f, g, h, word, constant)                \
+  do {                                                                         \
+    lh_u32 t1_;                                                                \
+    lh_u32 t2_;                                                                \
+    t1_ = (h) + LH_SHA256_BSIG1(e) + LH_SHA256_CH((e), (f), (g)) +             \
+          (constant) + (word);                                                 \
+    t2_ = LH_SHA256_BSIG0(a) + LH_SHA256_MAJ((a), (b), (c));                   \
+    (d) += t1_;                                                                \
+    (h) = t1_ + t2_;                                                           \
+  } while (0)
+#define LH_SHA256_W(i)                                                         \
+  (w[(i) & 15U] += LH_SHA256_SSIG1(w[((i) - 2U) & 15U]) +                      \
+                   w[((i) - 7U) & 15U] +                                       \
+                   LH_SHA256_SSIG0(w[((i) - 15U) & 15U]))
+#define LH_SHA256_ROUND_LOAD(i, a, b, c, d, e, f, g, h)                        \
+  LH_SHA256_ROUND((a), (b), (c), (d), (e), (f), (g), (h), w[(i)],              \
+                  lh_sha256_k[(i)])
+#define LH_SHA256_ROUND_SCHED(i, a, b, c, d, e, f, g, h)                       \
+  LH_SHA256_ROUND((a), (b), (c), (d), (e), (f), (g), (h), LH_SHA256_W(i),      \
+                  lh_sha256_k[(i)])
+
+static void lh_sha256_transform_scalar(lh_sha256_impl *ctx,
+                                       const unsigned char block[64]) {
+  lh_u32 w[16];
   lh_u32 a, b, c, d, e, f, g, h;
-  lh_u32 s0, s1, ch, maj, t1, t2;
   unsigned int i;
 
   for (i = 0; i < 16; ++i) {
     w[i] = lh_load_be32(block + (i * 4U));
-  }
-  for (i = 16; i < 64; ++i) {
-    s0 = lh_rotr(w[i - 15], 7) ^ lh_rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
-    s1 = lh_rotr(w[i - 2], 17) ^ lh_rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
-    w[i] = lh_wrap(w[i - 16] + s0 + w[i - 7] + s1);
   }
 
   a = ctx->state[0];
@@ -154,22 +183,70 @@ static void lh_sha256_transform(lh_sha256_impl *ctx,
   g = ctx->state[6];
   h = ctx->state[7];
 
-  for (i = 0; i < 64; ++i) {
-    s1 = lh_rotr(e, 6) ^ lh_rotr(e, 11) ^ lh_rotr(e, 25);
-    ch = (e & f) ^ ((~e) & g);
-    t1 = lh_wrap(h + s1 + ch + lh_sha256_k[i] + w[i]);
-    s0 = lh_rotr(a, 2) ^ lh_rotr(a, 13) ^ lh_rotr(a, 22);
-    maj = (a & b) ^ (a & c) ^ (b & c);
-    t2 = lh_wrap(s0 + maj);
-    h = g;
-    g = f;
-    f = e;
-    e = lh_wrap(d + t1);
-    d = c;
-    c = b;
-    b = a;
-    a = lh_wrap(t1 + t2);
-  }
+  LH_SHA256_ROUND_LOAD(0, a, b, c, d, e, f, g, h);
+  LH_SHA256_ROUND_LOAD(1, h, a, b, c, d, e, f, g);
+  LH_SHA256_ROUND_LOAD(2, g, h, a, b, c, d, e, f);
+  LH_SHA256_ROUND_LOAD(3, f, g, h, a, b, c, d, e);
+  LH_SHA256_ROUND_LOAD(4, e, f, g, h, a, b, c, d);
+  LH_SHA256_ROUND_LOAD(5, d, e, f, g, h, a, b, c);
+  LH_SHA256_ROUND_LOAD(6, c, d, e, f, g, h, a, b);
+  LH_SHA256_ROUND_LOAD(7, b, c, d, e, f, g, h, a);
+  LH_SHA256_ROUND_LOAD(8, a, b, c, d, e, f, g, h);
+  LH_SHA256_ROUND_LOAD(9, h, a, b, c, d, e, f, g);
+  LH_SHA256_ROUND_LOAD(10, g, h, a, b, c, d, e, f);
+  LH_SHA256_ROUND_LOAD(11, f, g, h, a, b, c, d, e);
+  LH_SHA256_ROUND_LOAD(12, e, f, g, h, a, b, c, d);
+  LH_SHA256_ROUND_LOAD(13, d, e, f, g, h, a, b, c);
+  LH_SHA256_ROUND_LOAD(14, c, d, e, f, g, h, a, b);
+  LH_SHA256_ROUND_LOAD(15, b, c, d, e, f, g, h, a);
+  LH_SHA256_ROUND_SCHED(16, a, b, c, d, e, f, g, h);
+  LH_SHA256_ROUND_SCHED(17, h, a, b, c, d, e, f, g);
+  LH_SHA256_ROUND_SCHED(18, g, h, a, b, c, d, e, f);
+  LH_SHA256_ROUND_SCHED(19, f, g, h, a, b, c, d, e);
+  LH_SHA256_ROUND_SCHED(20, e, f, g, h, a, b, c, d);
+  LH_SHA256_ROUND_SCHED(21, d, e, f, g, h, a, b, c);
+  LH_SHA256_ROUND_SCHED(22, c, d, e, f, g, h, a, b);
+  LH_SHA256_ROUND_SCHED(23, b, c, d, e, f, g, h, a);
+  LH_SHA256_ROUND_SCHED(24, a, b, c, d, e, f, g, h);
+  LH_SHA256_ROUND_SCHED(25, h, a, b, c, d, e, f, g);
+  LH_SHA256_ROUND_SCHED(26, g, h, a, b, c, d, e, f);
+  LH_SHA256_ROUND_SCHED(27, f, g, h, a, b, c, d, e);
+  LH_SHA256_ROUND_SCHED(28, e, f, g, h, a, b, c, d);
+  LH_SHA256_ROUND_SCHED(29, d, e, f, g, h, a, b, c);
+  LH_SHA256_ROUND_SCHED(30, c, d, e, f, g, h, a, b);
+  LH_SHA256_ROUND_SCHED(31, b, c, d, e, f, g, h, a);
+  LH_SHA256_ROUND_SCHED(32, a, b, c, d, e, f, g, h);
+  LH_SHA256_ROUND_SCHED(33, h, a, b, c, d, e, f, g);
+  LH_SHA256_ROUND_SCHED(34, g, h, a, b, c, d, e, f);
+  LH_SHA256_ROUND_SCHED(35, f, g, h, a, b, c, d, e);
+  LH_SHA256_ROUND_SCHED(36, e, f, g, h, a, b, c, d);
+  LH_SHA256_ROUND_SCHED(37, d, e, f, g, h, a, b, c);
+  LH_SHA256_ROUND_SCHED(38, c, d, e, f, g, h, a, b);
+  LH_SHA256_ROUND_SCHED(39, b, c, d, e, f, g, h, a);
+  LH_SHA256_ROUND_SCHED(40, a, b, c, d, e, f, g, h);
+  LH_SHA256_ROUND_SCHED(41, h, a, b, c, d, e, f, g);
+  LH_SHA256_ROUND_SCHED(42, g, h, a, b, c, d, e, f);
+  LH_SHA256_ROUND_SCHED(43, f, g, h, a, b, c, d, e);
+  LH_SHA256_ROUND_SCHED(44, e, f, g, h, a, b, c, d);
+  LH_SHA256_ROUND_SCHED(45, d, e, f, g, h, a, b, c);
+  LH_SHA256_ROUND_SCHED(46, c, d, e, f, g, h, a, b);
+  LH_SHA256_ROUND_SCHED(47, b, c, d, e, f, g, h, a);
+  LH_SHA256_ROUND_SCHED(48, a, b, c, d, e, f, g, h);
+  LH_SHA256_ROUND_SCHED(49, h, a, b, c, d, e, f, g);
+  LH_SHA256_ROUND_SCHED(50, g, h, a, b, c, d, e, f);
+  LH_SHA256_ROUND_SCHED(51, f, g, h, a, b, c, d, e);
+  LH_SHA256_ROUND_SCHED(52, e, f, g, h, a, b, c, d);
+  LH_SHA256_ROUND_SCHED(53, d, e, f, g, h, a, b, c);
+  LH_SHA256_ROUND_SCHED(54, c, d, e, f, g, h, a, b);
+  LH_SHA256_ROUND_SCHED(55, b, c, d, e, f, g, h, a);
+  LH_SHA256_ROUND_SCHED(56, a, b, c, d, e, f, g, h);
+  LH_SHA256_ROUND_SCHED(57, h, a, b, c, d, e, f, g);
+  LH_SHA256_ROUND_SCHED(58, g, h, a, b, c, d, e, f);
+  LH_SHA256_ROUND_SCHED(59, f, g, h, a, b, c, d, e);
+  LH_SHA256_ROUND_SCHED(60, e, f, g, h, a, b, c, d);
+  LH_SHA256_ROUND_SCHED(61, d, e, f, g, h, a, b, c);
+  LH_SHA256_ROUND_SCHED(62, c, d, e, f, g, h, a, b);
+  LH_SHA256_ROUND_SCHED(63, b, c, d, e, f, g, h, a);
 
   ctx->state[0] = lh_wrap(ctx->state[0] + a);
   ctx->state[1] = lh_wrap(ctx->state[1] + b);
@@ -179,6 +256,22 @@ static void lh_sha256_transform(lh_sha256_impl *ctx,
   ctx->state[5] = lh_wrap(ctx->state[5] + f);
   ctx->state[6] = lh_wrap(ctx->state[6] + g);
   ctx->state[7] = lh_wrap(ctx->state[7] + h);
+}
+
+static void lh_sha256_transform(lh_sha256_impl *ctx,
+                                const unsigned char block[64]) {
+#if LONEHASH_HAVE_SHA_NI
+  static int use_sha_ni = -1;
+
+  if (use_sha_ni < 0) {
+    use_sha_ni = lonehash_sha256_ni_available();
+  }
+  if (use_sha_ni) {
+    lonehash_sha256_ni_transform(ctx->state, block);
+    return;
+  }
+#endif
+  lh_sha256_transform_scalar(ctx, block);
 }
 
 static lonehash_status lh_sha256_reset(lonehash_sha256 *self) {

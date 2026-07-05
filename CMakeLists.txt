@@ -26,6 +26,7 @@ option(LONEHASH_BUILD_BENCHMARKS "Build benchmarks" ON)
 option(LONEHASH_BUILD_CLI "Build lh CLI" ON)
 option(LONEHASH_CLI_STATIC "Link lh fully static where the platform supports it"
        ON)
+option(LONEHASH_ENABLE_SHA_NI "Enable x86 SHA-NI acceleration when available" ON)
 option(LONEHASH_INSTALL "Install lonehash targets and metadata" ON)
 set(LONEHASH_TARGET_ID
     "host"
@@ -54,6 +55,12 @@ configure_file(cmake/lonehash.pc.in
 set(LONEHASH_PUBLIC_INCLUDE_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
 set(LONEHASH_SOURCES src/lonehash.c)
+if(LONEHASH_ENABLE_SHA_NI
+   AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|i[3-6]86)$"
+   AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+  list(APPEND LONEHASH_SOURCES src/lonehash_sha256_ni.c)
+  set(LONEHASH_HAVE_SHA_NI ON)
+endif()
 
 function(lonehash_target_defaults target)
   target_include_directories(
@@ -65,6 +72,11 @@ function(lonehash_target_defaults target)
     target_compile_options(${target} PRIVATE /W4 /WX)
   else()
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  endif()
+  if(LONEHASH_HAVE_SHA_NI)
+    target_compile_definitions(${target} PRIVATE LONEHASH_HAVE_SHA_NI=1)
+    set_source_files_properties(src/lonehash_sha256_ni.c PROPERTIES
+                                COMPILE_OPTIONS "-msha;-mssse3;-msse4.1")
   endif()
   set_target_properties(${target} PROPERTIES OUTPUT_NAME lonehash)
 endfunction()
