@@ -24,6 +24,7 @@ option(LONEHASH_BUILD_EXAMPLES "Build examples" ON)
 option(LONEHASH_BUILD_TESTS "Build tests" ON)
 option(LONEHASH_BUILD_BENCHMARKS "Build benchmarks" ON)
 option(LONEHASH_BUILD_CLI "Build lh CLI" ON)
+option(LONEHASH_BUILD_LUA "Build Lua facade for the host build" OFF)
 option(LONEHASH_CLI_STATIC "Link lh fully static where the platform supports it"
        ON)
 option(LONEHASH_ENABLE_SHA_NI "Enable x86 SHA-NI acceleration when available" ON)
@@ -169,6 +170,34 @@ if(LONEHASH_BUILD_CLI)
   endif()
 endif()
 
+if(LONEHASH_BUILD_LUA)
+  if(NOT TARGET lonehash_shared)
+    message(FATAL_ERROR "LONEHASH_BUILD_LUA requires LONEHASH_BUILD_SHARED=ON")
+  endif()
+  find_program(LUA_EXECUTABLE lua REQUIRED)
+  find_path(LUA_INCLUDE_DIR lua.h PATHS /usr/local/include /usr/include
+            REQUIRED)
+  add_library(lonehash_lua_core MODULE lua/lonehash/core.c)
+  target_include_directories(lonehash_lua_core
+                             PRIVATE "${LUA_INCLUDE_DIR}"
+                                     "${LONEHASH_PUBLIC_INCLUDE_DIR}")
+  target_link_libraries(lonehash_lua_core PRIVATE lonehash_shared)
+  set_target_properties(lonehash_lua_core PROPERTIES C_STANDARD 99
+                                                     C_STANDARD_REQUIRED ON)
+  if(MSVC)
+    target_compile_options(lonehash_lua_core PRIVATE /W4 /WX)
+  else()
+    target_compile_options(lonehash_lua_core PRIVATE -Wall -Wextra -Wpedantic
+                                                     -Werror)
+  endif()
+  set_target_properties(
+    lonehash_lua_core
+    PROPERTIES PREFIX ""
+               OUTPUT_NAME core
+               LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lonehash"
+               BUILD_RPATH "$ORIGIN/..")
+endif()
+
 if(LONEHASH_BUILD_BENCHMARKS)
   add_executable(lonehash_bench bench/bench_lonehash.c)
   target_link_libraries(lonehash_bench PRIVATE lonehash)
@@ -192,6 +221,14 @@ if(LONEHASH_BUILD_TESTS)
                      "$<TARGET_FILE:lh>")
     set_tests_properties(lonehash.cli PROPERTIES LABELS "smoke;local" TIMEOUT
                                                  10)
+  endif()
+  if(TARGET lonehash_lua_core)
+    add_test(NAME lonehash.lua
+             COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_lua.sh"
+                     "${CMAKE_CURRENT_SOURCE_DIR}"
+                     "${CMAKE_CURRENT_BINARY_DIR}")
+    set_tests_properties(lonehash.lua PROPERTIES LABELS "smoke;local;lua"
+                                                 TIMEOUT 10)
   endif()
 endif()
 

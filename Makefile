@@ -1,4 +1,4 @@
-.PHONY: help configure build build-debug build-release test test-debug test-all asan \
+.PHONY: help configure build build-debug build-release test test-debug test-all lua-test lua-artifacts asan \
 	bench benchmarks bench-gate package package-cli package-source package-source-smoke \
 	package-checksums package-verify verify-release-archives verify-release-privacy \
 	release-matrix finalize-slice prerelease prerelease-hardening release \
@@ -8,6 +8,8 @@ help:
 	@printf '%s\n' \
 	  'build                  Configure and build debug preset' \
 	  'test                   Run debug tests' \
+	  'lua-test               Run Lua facade smoke tests against build/debug' \
+	  'lua-artifacts          Build Lua source tarball, rockspec, and source rock' \
 	  'asan                   Build and run ASan/UBSan preset' \
 	  'bench                  Run local benchmarks' \
 	  'package                Build host library SDK and lh CLI tarballs' \
@@ -38,6 +40,12 @@ build-release:
 
 test test-debug: build-debug
 	ctest --preset debug
+
+lua-test: build-debug
+	test "$$(printf abc | ./lh.sh -sq)" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+
+lua-artifacts:
+	scripts/package_lua.sh
 
 test-all: test asan
 
@@ -78,7 +86,7 @@ finalize-slice: format test
 
 prerelease: finalize-slice asan package-source-smoke
 
-prerelease-hardening: prerelease package package-checksums package-verify
+prerelease-hardening: prerelease package lua-artifacts package-checksums package-verify
 
 release: clean prerelease-hardening
 
@@ -86,7 +94,7 @@ print-release-version:
 	@scripts/release_version.sh
 
 format:
-	clang-format -i src/*.c tests/*.c examples/*.c bench/*.c
+	clang-format -i src/*.c tests/*.c examples/*.c bench/*.c lua/lonehash/*.c
 
 clean:
 	rm -rf build dist .cache

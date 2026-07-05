@@ -39,6 +39,22 @@ The lifecycle command surface is available through:
 make help
 ```
 
+## Lua
+
+The Lua facade links against `liblonehash` through the public C API only.
+
+```sh
+make lua-test
+printf abc | ./lh.sh -sq
+lua lua/examples/hash_strings.lua
+```
+
+Lua release artifacts are produced with:
+
+```sh
+make lua-artifacts
+```
+
 ## Example
 
 ```c

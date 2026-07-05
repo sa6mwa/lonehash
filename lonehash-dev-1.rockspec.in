@@ -1,0 +1,41 @@
+package = "lonehash"
+version = "@LONEHASH_LUA_ROCK_VERSION@-1"
+
+source = {
+   url = "lonehash-lua-@LONEHASH_LUA_VERSION@.tar.gz",
+   dir = "lonehash-lua-@LONEHASH_LUA_VERSION@"
+}
+
+description = {
+   summary = "Lua facade for liblonehash SHA-256 and MD5",
+   detailed = "Lua bindings and CLI facade for liblonehash.",
+   license = "MIT"
+}
+
+dependencies = {
+   "lua >= 5.5"
+}
+
+external_dependencies = {
+   LONEHASH = {
+      header = "lonehash/lonehash.h",
+      library = "lonehash"
+   }
+}
+
+build = {
+   type = "builtin",
+   modules = {
+      ["lonehash"] = "lua/lonehash.lua",
+      ["lonehash.core"] = {
+         sources = { "lua/lonehash/core.c" },
+         incdirs = { "include" },
+         libraries = { "lonehash" }
+      }
+   },
+   install = {
+      bin = {
+         lh = "lua/lh.lua"
+      }
+   }
+}

@@ -64,6 +64,37 @@ scan_path "$(basename "$manifest")" "$manifest" "${HOME:-}" "HOME path"
 
 while read -r _hash artifact; do
   case "$artifact" in
+    lonehash-lua-"$version".tar.gz)
+      root_name="lonehash-lua-$version"
+      tar -C "$tmp" -xzf "$dist/$artifact"
+      test -f "$tmp/$root_name/lonehash-$version-1.rockspec"
+      test -f "$tmp/$root_name/include/lonehash/lonehash.h"
+      test -f "$tmp/$root_name/lua/lonehash.lua"
+      test -f "$tmp/$root_name/lua/lonehash/core.c"
+      test -f "$tmp/$root_name/lua/lh.lua"
+      scan_tree "$artifact" "$tmp/$root_name"
+      ;;
+    lonehash-"$version"-1.rockspec)
+      scan_path "$artifact" "$dist/$artifact" "$root" "repository path"
+      scan_path "$artifact" "$dist/$artifact" "${HOME:-}" "HOME path"
+      scan_path "$artifact" "$dist/$artifact" "file://$root" "repository file URL"
+      if [ "${HOME:-}" != "" ]; then
+        scan_path "$artifact" "$dist/$artifact" "file://$HOME" "HOME file URL"
+      fi
+      ;;
+    lonehash-"$version"-1.src.rock)
+      rock_dir="$tmp/${artifact%.src.rock}"
+      mkdir -p "$rock_dir"
+      unzip -q "$dist/$artifact" -d "$rock_dir"
+      test -f "$rock_dir/lonehash-$version-1.rockspec"
+      test -f "$rock_dir/lonehash-lua-$version.tar.gz"
+      scan_tree "$artifact" "$rock_dir"
+      nested="$rock_dir/nested"
+      mkdir -p "$nested"
+      tar -C "$nested" -xzf "$rock_dir/lonehash-lua-$version.tar.gz"
+      test -f "$nested/lonehash-lua-$version/lua/lonehash/core.c"
+      scan_tree "$artifact nested source" "$nested/lonehash-lua-$version"
+      ;;
     lonehash-"$version".tar.gz)
       root_name="lonehash-$version"
       tar -C "$tmp" -xzf "$dist/$artifact"
