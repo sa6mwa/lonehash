@@ -27,6 +27,8 @@ option(LONEHASH_BUILD_CLI "Build lh CLI" ON)
 option(LONEHASH_CLI_STATIC "Link lh fully static where the platform supports it"
        ON)
 option(LONEHASH_ENABLE_SHA_NI "Enable x86 SHA-NI acceleration when available" ON)
+option(LONEHASH_ENABLE_ARM_SHA2
+       "Enable AArch64 SHA2 acceleration when available" ON)
 option(LONEHASH_INSTALL "Install lonehash targets and metadata" ON)
 set(LONEHASH_TARGET_ID
     "host"
@@ -62,18 +64,30 @@ set(LONEHASH_PUBLIC_INCLUDE_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
 set(LONEHASH_SOURCES src/lonehash.c)
 set(LONEHASH_SHA_NI_TARGET OFF)
+set(LONEHASH_ARM_SHA2_TARGET OFF)
 if(LONEHASH_TARGET_ID STREQUAL "host")
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|i[3-6]86)$")
     set(LONEHASH_SHA_NI_TARGET ON)
   endif()
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+    set(LONEHASH_ARM_SHA2_TARGET ON)
+  endif()
 elseif(LONEHASH_TARGET_ID MATCHES "^(x86_64|i[3-6]86)-")
   set(LONEHASH_SHA_NI_TARGET ON)
+elseif(LONEHASH_TARGET_ID MATCHES "^(aarch64|arm64)-")
+  set(LONEHASH_ARM_SHA2_TARGET ON)
 endif()
 if(LONEHASH_ENABLE_SHA_NI
    AND LONEHASH_SHA_NI_TARGET
    AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
   list(APPEND LONEHASH_SOURCES src/lonehash_sha256_ni.c)
   set(LONEHASH_HAVE_SHA_NI ON)
+endif()
+if(LONEHASH_ENABLE_ARM_SHA2
+   AND LONEHASH_ARM_SHA2_TARGET
+   AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+  list(APPEND LONEHASH_SOURCES src/lonehash_sha256_armv8.c)
+  set(LONEHASH_HAVE_ARM_SHA2 ON)
 endif()
 
 function(lonehash_target_defaults target)
@@ -91,6 +105,13 @@ function(lonehash_target_defaults target)
     target_compile_definitions(${target} PRIVATE LONEHASH_HAVE_SHA_NI=1)
     set_source_files_properties(src/lonehash_sha256_ni.c PROPERTIES
                                 COMPILE_OPTIONS "-msha;-mssse3;-msse4.1")
+  endif()
+  if(LONEHASH_HAVE_ARM_SHA2)
+    target_compile_definitions(${target} PRIVATE LONEHASH_HAVE_ARM_SHA2=1)
+    if(NOT LONEHASH_TARGET_ID MATCHES "apple-darwin$")
+      set_source_files_properties(src/lonehash_sha256_armv8.c PROPERTIES
+                                  COMPILE_OPTIONS "-march=armv8-a+crypto")
+    endif()
   endif()
   set_target_properties(${target} PROPERTIES OUTPUT_NAME lonehash)
 endfunction()

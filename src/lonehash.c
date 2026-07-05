@@ -18,6 +18,11 @@ int lonehash_sha256_ni_available(void);
 void lonehash_sha256_ni_transform(lh_u32 state[8],
                                   const unsigned char block[64]);
 #endif
+#if LONEHASH_HAVE_ARM_SHA2
+int lonehash_sha256_armv8_available(void);
+void lonehash_sha256_armv8_transform(lh_u32 state[8],
+                                     const unsigned char block[64]);
+#endif
 
 typedef struct lh_sha256_impl {
   lh_u32 state[8];
@@ -268,6 +273,17 @@ static void lh_sha256_transform(lh_sha256_impl *ctx,
   }
   if (use_sha_ni) {
     lonehash_sha256_ni_transform(ctx->state, block);
+    return;
+  }
+#endif
+#if LONEHASH_HAVE_ARM_SHA2
+  static int use_arm_sha2 = -1;
+
+  if (use_arm_sha2 < 0) {
+    use_arm_sha2 = lonehash_sha256_armv8_available();
+  }
+  if (use_arm_sha2) {
+    lonehash_sha256_armv8_transform(ctx->state, block);
     return;
   }
 #endif
