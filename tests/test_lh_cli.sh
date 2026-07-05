@@ -31,3 +31,17 @@ test "$cluster_prefix" = "900150983cd24fb0d6963f7d28e17f72  -"
 
 cluster_sha=$(printf abc | "$lh" -5zs)
 test "$cluster_sha" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  -"
+
+printf abc | "$lh" -szq >"$tmp/quiet-raw.out"
+quiet_raw_bytes=$(wc -c <"$tmp/quiet-raw.out" | tr -d ' ')
+test "$quiet_raw_bytes" = "64"
+quiet_raw=$(cat "$tmp/quiet-raw.out")
+test "$quiet_raw" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+
+quiet_file=$("$lh" --md5 --quiet "$tmp/abc.txt")
+test "$quiet_file" = "900150983cd24fb0d6963f7d28e17f72"
+
+if "$lh" --quiet "$tmp/abc.txt" "$tmp/abc.txt" >"$tmp/quiet-many.out" 2>"$tmp/quiet-many.err"; then
+  exit 1
+fi
+grep "requires stdin or exactly one FILE" "$tmp/quiet-many.err" >/dev/null
