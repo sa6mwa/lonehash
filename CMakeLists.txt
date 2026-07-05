@@ -23,6 +23,9 @@ option(LONEHASH_BUILD_SHARED "Build shared liblonehash" ON)
 option(LONEHASH_BUILD_EXAMPLES "Build examples" ON)
 option(LONEHASH_BUILD_TESTS "Build tests" ON)
 option(LONEHASH_BUILD_BENCHMARKS "Build benchmarks" ON)
+option(LONEHASH_BUILD_CLI "Build lh CLI" ON)
+option(LONEHASH_CLI_STATIC "Link lh fully static where the platform supports it"
+       ON)
 option(LONEHASH_INSTALL "Install lonehash targets and metadata" ON)
 set(LONEHASH_TARGET_ID
     "host"
@@ -97,6 +100,26 @@ endif()
 if(LONEHASH_BUILD_EXAMPLES)
   add_executable(lonehash_example examples/hash_strings.c)
   target_link_libraries(lonehash_example PRIVATE lonehash)
+  add_executable(lonehash_file_example examples/hash_file.c)
+  target_link_libraries(lonehash_file_example PRIVATE lonehash)
+endif()
+
+if(LONEHASH_BUILD_CLI)
+  add_executable(lh src/lh.c)
+  if(MSVC)
+    target_compile_options(lh PRIVATE /W4 /WX)
+  else()
+    target_compile_options(lh PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  endif()
+  target_include_directories(lh PRIVATE "${LONEHASH_PUBLIC_INCLUDE_DIR}")
+  if(TARGET lonehash_static)
+    target_link_libraries(lh PRIVATE lonehash_static)
+  else()
+    target_link_libraries(lh PRIVATE lonehash)
+  endif()
+  if(LONEHASH_CLI_STATIC)
+    target_link_options(lh PRIVATE "$<$<NOT:$<PLATFORM_ID:Darwin>>:-static>")
+  endif()
 endif()
 
 if(LONEHASH_BUILD_BENCHMARKS)
@@ -116,6 +139,13 @@ if(LONEHASH_BUILD_TESTS)
   add_test(NAME lonehash.header-c89 COMMAND lonehash_header_c89)
   set_tests_properties(lonehash.header-c89 PROPERTIES LABELS "smoke;local"
                                                       TIMEOUT 10)
+  if(TARGET lh)
+    add_test(NAME lonehash.cli
+             COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_lh_cli.sh"
+                     "$<TARGET_FILE:lh>")
+    set_tests_properties(lonehash.cli PROPERTIES LABELS "smoke;local" TIMEOUT
+                                                 10)
+  endif()
 endif()
 
 if(LONEHASH_INSTALL)

@@ -17,6 +17,7 @@ for target in $targets; do
   if LONEHASH_TARGET_ID="$target" cmake --preset "$preset"; then
     LONEHASH_TARGET_ID="$target" cmake --build --preset "$preset"
     LONEHASH_TARGET_ID="$target" "$root/scripts/package.sh" "$target" "$preset"
+    LONEHASH_TARGET_ID="$target" "$root/scripts/package_cli.sh" "$target" "$preset"
   else
     echo "SKIP target=$target reason=toolchain-unavailable-or-unconfigured"
   fi

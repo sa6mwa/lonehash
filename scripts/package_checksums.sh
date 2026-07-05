@@ -8,7 +8,7 @@ manifest="$dist/lonehash-$version-CHECKSUMS"
 
 cd "$dist"
 rm -f "$manifest"
-for artifact in lonehash-"$version"*.tar.gz; do
+for artifact in lonehash-"$version"*.tar.gz lh-"$version"*.tar.gz; do
   [ -f "$artifact" ] || continue
   sha256sum "$artifact" >>"$manifest"
 done

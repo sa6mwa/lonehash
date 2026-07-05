@@ -16,6 +16,15 @@ or zero-restriction hash implementations, especially `oopsio/nanosha256`,
 `BareRose/lonesha256`, and `mackron/md5`. Copyright for this distribution is
 owned as stated in `LICENSE`.
 
+The `lh` CLI is distributed separately from the library SDK. It follows the
+basic `sha256sum`/`md5sum` output shape:
+
+```sh
+lh --sha256 FILE...
+lh --md5 FILE...
+printf abc | lh -s
+```
+
 ## Build
 
 ```sh

@@ -1,5 +1,5 @@
 .PHONY: help configure build build-debug build-release test test-debug test-all asan \
-	bench benchmarks bench-gate package package-source package-source-smoke \
+	bench benchmarks bench-gate package package-cli package-source package-source-smoke \
 	package-checksums package-verify verify-release-archives verify-release-privacy \
 	release-matrix finalize-slice prerelease prerelease-hardening release \
 	print-release-version format clean clean-dist
@@ -10,7 +10,8 @@ help:
 	  'test                   Run debug tests' \
 	  'asan                   Build and run ASan/UBSan preset' \
 	  'bench                  Run local benchmarks' \
-	  'package                Build host binary SDK tarball' \
+	  'package                Build host library SDK and lh CLI tarballs' \
+	  'package-cli            Build host lh CLI tarball' \
 	  'package-source         Build source tarball' \
 	  'package-source-smoke   Extract/build/test source tarball' \
 	  'package-checksums      Generate SHA-256 release checksum manifest' \
@@ -50,8 +51,11 @@ bench benchmarks: build-debug
 
 bench-gate: bench
 
-package: build-release
+package: build-release package-cli
 	scripts/package.sh host release
+
+package-cli: build-release
+	scripts/package_cli.sh host release
 
 package-source:
 	scripts/package_source.sh
