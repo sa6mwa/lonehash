@@ -31,6 +31,12 @@ option(LONEHASH_INSTALL "Install lonehash targets and metadata" ON)
 set(LONEHASH_TARGET_ID
     "host"
     CACHE STRING "Release target identifier")
+if(LONEHASH_TARGET_ID STREQUAL "host" AND NOT "$ENV{LONEHASH_TARGET_ID}" STREQUAL
+                                      "")
+  set(LONEHASH_TARGET_ID
+      "$ENV{LONEHASH_TARGET_ID}"
+      CACHE STRING "Release target identifier" FORCE)
+endif()
 set(LONEHASH_DIST_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/dist"
     CACHE PATH "Release artifact directory")
@@ -55,8 +61,16 @@ configure_file(cmake/lonehash.pc.in
 set(LONEHASH_PUBLIC_INCLUDE_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
 set(LONEHASH_SOURCES src/lonehash.c)
+set(LONEHASH_SHA_NI_TARGET OFF)
+if(LONEHASH_TARGET_ID STREQUAL "host")
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|i[3-6]86)$")
+    set(LONEHASH_SHA_NI_TARGET ON)
+  endif()
+elseif(LONEHASH_TARGET_ID MATCHES "^(x86_64|i[3-6]86)-")
+  set(LONEHASH_SHA_NI_TARGET ON)
+endif()
 if(LONEHASH_ENABLE_SHA_NI
-   AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|i[3-6]86)$"
+   AND LONEHASH_SHA_NI_TARGET
    AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
   list(APPEND LONEHASH_SOURCES src/lonehash_sha256_ni.c)
   set(LONEHASH_HAVE_SHA_NI ON)

@@ -2,23 +2,27 @@
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-targets="
-x86_64-linux-gnu
-x86_64-linux-musl
-aarch64-linux-gnu
-aarch64-linux-musl
-armhf-linux-gnu
-armhf-linux-musl
-arm64-apple-darwin
-"
+toolchains="$root/scripts/cpkt-toolchains.sh"
+targets=$("$toolchains" targets)
 
 for target in $targets; do
   preset="$target-release"
-  if LONEHASH_TARGET_ID="$target" cmake --preset "$preset"; then
-    LONEHASH_TARGET_ID="$target" cmake --build --preset "$preset"
-    LONEHASH_TARGET_ID="$target" "$root/scripts/package.sh" "$target" "$preset"
-    LONEHASH_TARGET_ID="$target" "$root/scripts/package_cli.sh" "$target" "$preset"
-  else
-    echo "SKIP target=$target reason=toolchain-unavailable-or-unconfigured"
-  fi
+  case "$target" in
+    arm64-apple-darwin)
+      if ! "$toolchains" discover "$target" | grep '^status=ready$' >/dev/null 2>&1; then
+        echo "SKIP target=$target reason=darwin-toolchain-unavailable"
+        continue
+      fi
+      ;;
+    *)
+      "$toolchains" ensure "$target"
+      ;;
+  esac
+
+  eval "$("$toolchains" env "$target")"
+  export LONEHASH_TARGET_ID="$target"
+  cmake --preset "$preset"
+  cmake --build --preset "$preset"
+  "$root/scripts/package.sh" "$target" "$preset"
+  "$root/scripts/package_cli.sh" "$target" "$preset"
 done
