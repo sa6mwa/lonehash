@@ -1,86 +1,93 @@
 #include "lonehash/lonehash.h"
 
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define LH_U32_MASK 0xffffffffUL
+#define LH_U32_MASK 0xffffffffU
 #define LH_FILE_BUFFER_SIZE 32768
 
+#if UINT_MAX != 0xffffffffU
+#error "lonehash requires a 32-bit unsigned int"
+#endif
+
+typedef unsigned int lh_u32;
+
 typedef struct lh_sha256_impl {
-  unsigned long state[8];
-  unsigned long bit_count_low;
-  unsigned long bit_count_high;
+  lh_u32 state[8];
+  lh_u32 bit_count_low;
+  lh_u32 bit_count_high;
   unsigned char buffer[LONEHASH_SHA256_BLOCK_SIZE];
   unsigned int buffer_len;
 } lh_sha256_impl;
 
 typedef struct lh_md5_impl {
-  unsigned long state[4];
-  unsigned long bit_count_low;
-  unsigned long bit_count_high;
+  lh_u32 state[4];
+  lh_u32 bit_count_low;
+  lh_u32 bit_count_high;
   unsigned char buffer[LONEHASH_MD5_BLOCK_SIZE];
   unsigned int buffer_len;
 } lh_md5_impl;
 
-static unsigned long lh_u32(unsigned long x) { return x & LH_U32_MASK; }
+static lh_u32 lh_wrap(lh_u32 x) { return x & LH_U32_MASK; }
 
-static unsigned long lh_load_be32(const unsigned char *p) {
-  return ((unsigned long)p[0] << 24) | ((unsigned long)p[1] << 16) |
-         ((unsigned long)p[2] << 8) | (unsigned long)p[3];
+static lh_u32 lh_load_be32(const unsigned char *p) {
+  return ((lh_u32)p[0] << 24) | ((lh_u32)p[1] << 16) | ((lh_u32)p[2] << 8) |
+         (lh_u32)p[3];
 }
 
-static unsigned long lh_load_le32(const unsigned char *p) {
-  return (unsigned long)p[0] | ((unsigned long)p[1] << 8) |
-         ((unsigned long)p[2] << 16) | ((unsigned long)p[3] << 24);
+static lh_u32 lh_load_le32(const unsigned char *p) {
+  return (lh_u32)p[0] | ((lh_u32)p[1] << 8) | ((lh_u32)p[2] << 16) |
+         ((lh_u32)p[3] << 24);
 }
 
-static void lh_store_be32(unsigned char *p, unsigned long x) {
-  x = lh_u32(x);
+static void lh_store_be32(unsigned char *p, lh_u32 x) {
+  x = lh_wrap(x);
   p[0] = (unsigned char)(x >> 24);
   p[1] = (unsigned char)(x >> 16);
   p[2] = (unsigned char)(x >> 8);
   p[3] = (unsigned char)x;
 }
 
-static void lh_store_le32(unsigned char *p, unsigned long x) {
-  x = lh_u32(x);
+static void lh_store_le32(unsigned char *p, lh_u32 x) {
+  x = lh_wrap(x);
   p[0] = (unsigned char)x;
   p[1] = (unsigned char)(x >> 8);
   p[2] = (unsigned char)(x >> 16);
   p[3] = (unsigned char)(x >> 24);
 }
 
-static unsigned long lh_rotr(unsigned long x, unsigned int n) {
-  x = lh_u32(x);
-  return lh_u32((x >> n) | (x << (32U - n)));
+static lh_u32 lh_rotr(lh_u32 x, unsigned int n) {
+  x = lh_wrap(x);
+  return lh_wrap((x >> n) | (x << (32U - n)));
 }
 
-static unsigned long lh_rotl(unsigned long x, unsigned int n) {
-  x = lh_u32(x);
-  return lh_u32((x << n) | (x >> (32U - n)));
+static lh_u32 lh_rotl(lh_u32 x, unsigned int n) {
+  x = lh_wrap(x);
+  return lh_wrap((x << n) | (x >> (32U - n)));
 }
 
-static void lh_add_bits(unsigned long *low, unsigned long *high, size_t len) {
-  unsigned long before;
-  unsigned long bytes_low;
-  unsigned long bytes_high;
+static void lh_add_bits(lh_u32 *low, lh_u32 *high, size_t len) {
+  lh_u32 before;
+  lh_u32 bytes_low;
+  lh_u32 bytes_high;
   size_t n;
 
   bytes_low = 0;
   bytes_high = 0;
   n = len;
   while (n >= 0x20000000UL) {
-    bytes_high = lh_u32(bytes_high + 1UL);
+    bytes_high = lh_wrap(bytes_high + 1UL);
     n -= 0x20000000UL;
   }
-  bytes_low = (unsigned long)n;
+  bytes_low = (lh_u32)n;
 
   before = *low;
-  *low = lh_u32(*low + lh_u32(bytes_low << 3));
-  *high = lh_u32(*high + lh_u32(bytes_high << 3));
-  *high = lh_u32(*high + (bytes_low >> 29));
+  *low = lh_wrap(*low + lh_wrap(bytes_low << 3));
+  *high = lh_wrap(*high + lh_wrap(bytes_high << 3));
+  *high = lh_wrap(*high + (bytes_low >> 29));
   if (*low < before) {
-    *high = lh_u32(*high + 1UL);
+    *high = lh_wrap(*high + 1UL);
   }
 }
 
@@ -107,7 +114,7 @@ const char *lonehash_status_string(lonehash_status status) {
   }
 }
 
-static const unsigned long lh_sha256_k[64] = {
+static const lh_u32 lh_sha256_k[64] = {
     0x428a2f98UL, 0x71374491UL, 0xb5c0fbcfUL, 0xe9b5dba5UL, 0x3956c25bUL,
     0x59f111f1UL, 0x923f82a4UL, 0xab1c5ed5UL, 0xd807aa98UL, 0x12835b01UL,
     0x243185beUL, 0x550c7dc3UL, 0x72be5d74UL, 0x80deb1feUL, 0x9bdc06a7UL,
@@ -124,9 +131,9 @@ static const unsigned long lh_sha256_k[64] = {
 
 static void lh_sha256_transform(lh_sha256_impl *ctx,
                                 const unsigned char block[64]) {
-  unsigned long w[64];
-  unsigned long a, b, c, d, e, f, g, h;
-  unsigned long s0, s1, ch, maj, t1, t2;
+  lh_u32 w[64];
+  lh_u32 a, b, c, d, e, f, g, h;
+  lh_u32 s0, s1, ch, maj, t1, t2;
   unsigned int i;
 
   for (i = 0; i < 16; ++i) {
@@ -135,7 +142,7 @@ static void lh_sha256_transform(lh_sha256_impl *ctx,
   for (i = 16; i < 64; ++i) {
     s0 = lh_rotr(w[i - 15], 7) ^ lh_rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
     s1 = lh_rotr(w[i - 2], 17) ^ lh_rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
-    w[i] = lh_u32(w[i - 16] + s0 + w[i - 7] + s1);
+    w[i] = lh_wrap(w[i - 16] + s0 + w[i - 7] + s1);
   }
 
   a = ctx->state[0];
@@ -150,28 +157,28 @@ static void lh_sha256_transform(lh_sha256_impl *ctx,
   for (i = 0; i < 64; ++i) {
     s1 = lh_rotr(e, 6) ^ lh_rotr(e, 11) ^ lh_rotr(e, 25);
     ch = (e & f) ^ ((~e) & g);
-    t1 = lh_u32(h + s1 + ch + lh_sha256_k[i] + w[i]);
+    t1 = lh_wrap(h + s1 + ch + lh_sha256_k[i] + w[i]);
     s0 = lh_rotr(a, 2) ^ lh_rotr(a, 13) ^ lh_rotr(a, 22);
     maj = (a & b) ^ (a & c) ^ (b & c);
-    t2 = lh_u32(s0 + maj);
+    t2 = lh_wrap(s0 + maj);
     h = g;
     g = f;
     f = e;
-    e = lh_u32(d + t1);
+    e = lh_wrap(d + t1);
     d = c;
     c = b;
     b = a;
-    a = lh_u32(t1 + t2);
+    a = lh_wrap(t1 + t2);
   }
 
-  ctx->state[0] = lh_u32(ctx->state[0] + a);
-  ctx->state[1] = lh_u32(ctx->state[1] + b);
-  ctx->state[2] = lh_u32(ctx->state[2] + c);
-  ctx->state[3] = lh_u32(ctx->state[3] + d);
-  ctx->state[4] = lh_u32(ctx->state[4] + e);
-  ctx->state[5] = lh_u32(ctx->state[5] + f);
-  ctx->state[6] = lh_u32(ctx->state[6] + g);
-  ctx->state[7] = lh_u32(ctx->state[7] + h);
+  ctx->state[0] = lh_wrap(ctx->state[0] + a);
+  ctx->state[1] = lh_wrap(ctx->state[1] + b);
+  ctx->state[2] = lh_wrap(ctx->state[2] + c);
+  ctx->state[3] = lh_wrap(ctx->state[3] + d);
+  ctx->state[4] = lh_wrap(ctx->state[4] + e);
+  ctx->state[5] = lh_wrap(ctx->state[5] + f);
+  ctx->state[6] = lh_wrap(ctx->state[6] + g);
+  ctx->state[7] = lh_wrap(ctx->state[7] + h);
 }
 
 static lonehash_status lh_sha256_reset(lonehash_sha256 *self) {
@@ -208,7 +215,7 @@ static lonehash_status lh_sha256_update(lonehash_sha256 *self, const void *data,
   p = (const unsigned char *)data;
   lh_add_bits(&ctx->bit_count_low, &ctx->bit_count_high, len);
 
-  while (len > 0) {
+  if (ctx->buffer_len != 0U) {
     take = 64U - ctx->buffer_len;
     if (take > len) {
       take = len;
@@ -221,6 +228,17 @@ static lonehash_status lh_sha256_update(lonehash_sha256 *self, const void *data,
       lh_sha256_transform(ctx, ctx->buffer);
       ctx->buffer_len = 0;
     }
+  }
+
+  while (len >= 64U) {
+    lh_sha256_transform(ctx, p);
+    p += 64U;
+    len -= 64U;
+  }
+
+  if (len > 0) {
+    memcpy(ctx->buffer, p, len);
+    ctx->buffer_len = (unsigned int)len;
   }
   return LONEHASH_OK;
 }
@@ -257,13 +275,13 @@ static lonehash_status lh_sha256_final(lonehash_sha256 *self,
   return LONEHASH_OK;
 }
 
-static const unsigned long lh_md5_s[64] = {
+static const lh_u32 lh_md5_s[64] = {
     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
     5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20,
     4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21};
 
-static const unsigned long lh_md5_k[64] = {
+static const lh_u32 lh_md5_k[64] = {
     0xd76aa478UL, 0xe8c7b756UL, 0x242070dbUL, 0xc1bdceeeUL, 0xf57c0fafUL,
     0x4787c62aUL, 0xa8304613UL, 0xfd469501UL, 0x698098d8UL, 0x8b44f7afUL,
     0xffff5bb1UL, 0x895cd7beUL, 0x6b901122UL, 0xfd987193UL, 0xa679438eUL,
@@ -279,8 +297,8 @@ static const unsigned long lh_md5_k[64] = {
     0xf7537e82UL, 0xbd3af235UL, 0x2ad7d2bbUL, 0xeb86d391UL};
 
 static void lh_md5_transform(lh_md5_impl *ctx, const unsigned char block[64]) {
-  unsigned long m[16];
-  unsigned long a, b, c, d, f, temp;
+  lh_u32 m[16];
+  lh_u32 a, b, c, d, f, temp;
   unsigned int i, g;
 
   for (i = 0; i < 16U; ++i) {
@@ -292,32 +310,54 @@ static void lh_md5_transform(lh_md5_impl *ctx, const unsigned char block[64]) {
   c = ctx->state[2];
   d = ctx->state[3];
 
-  for (i = 0; i < 64U; ++i) {
-    if (i < 16U) {
-      f = (b & c) | ((~b) & d);
-      g = i;
-    } else if (i < 32U) {
-      f = (d & b) | ((~d) & c);
-      g = (5U * i + 1U) & 15U;
-    } else if (i < 48U) {
-      f = b ^ c ^ d;
-      g = (3U * i + 5U) & 15U;
-    } else {
-      f = c ^ (b | (~d));
-      g = (7U * i) & 15U;
-    }
+  for (i = 0; i < 16U; ++i) {
+    f = (b & c) | ((~b) & d);
+    g = i;
     temp = d;
     d = c;
     c = b;
-    b = lh_u32(b + lh_rotl(lh_u32(a + f + lh_md5_k[i] + m[g]),
-                           (unsigned int)lh_md5_s[i]));
+    b = lh_wrap(b + lh_rotl(lh_wrap(a + f + lh_md5_k[i] + m[g]),
+                            (unsigned int)lh_md5_s[i]));
     a = temp;
   }
 
-  ctx->state[0] = lh_u32(ctx->state[0] + a);
-  ctx->state[1] = lh_u32(ctx->state[1] + b);
-  ctx->state[2] = lh_u32(ctx->state[2] + c);
-  ctx->state[3] = lh_u32(ctx->state[3] + d);
+  for (i = 16U; i < 32U; ++i) {
+    f = (d & b) | ((~d) & c);
+    g = (5U * i + 1U) & 15U;
+    temp = d;
+    d = c;
+    c = b;
+    b = lh_wrap(b + lh_rotl(lh_wrap(a + f + lh_md5_k[i] + m[g]),
+                            (unsigned int)lh_md5_s[i]));
+    a = temp;
+  }
+
+  for (i = 32U; i < 48U; ++i) {
+    f = b ^ c ^ d;
+    g = (3U * i + 5U) & 15U;
+    temp = d;
+    d = c;
+    c = b;
+    b = lh_wrap(b + lh_rotl(lh_wrap(a + f + lh_md5_k[i] + m[g]),
+                            (unsigned int)lh_md5_s[i]));
+    a = temp;
+  }
+
+  for (i = 48U; i < 64U; ++i) {
+    f = c ^ (b | (~d));
+    g = (7U * i) & 15U;
+    temp = d;
+    d = c;
+    c = b;
+    b = lh_wrap(b + lh_rotl(lh_wrap(a + f + lh_md5_k[i] + m[g]),
+                            (unsigned int)lh_md5_s[i]));
+    a = temp;
+  }
+
+  ctx->state[0] = lh_wrap(ctx->state[0] + a);
+  ctx->state[1] = lh_wrap(ctx->state[1] + b);
+  ctx->state[2] = lh_wrap(ctx->state[2] + c);
+  ctx->state[3] = lh_wrap(ctx->state[3] + d);
 }
 
 static lonehash_status lh_md5_reset(lonehash_md5 *self) {
@@ -350,7 +390,7 @@ static lonehash_status lh_md5_update(lonehash_md5 *self, const void *data,
   p = (const unsigned char *)data;
   lh_add_bits(&ctx->bit_count_low, &ctx->bit_count_high, len);
 
-  while (len > 0) {
+  if (ctx->buffer_len != 0U) {
     take = 64U - ctx->buffer_len;
     if (take > len) {
       take = len;
@@ -363,6 +403,17 @@ static lonehash_status lh_md5_update(lonehash_md5 *self, const void *data,
       lh_md5_transform(ctx, ctx->buffer);
       ctx->buffer_len = 0;
     }
+  }
+
+  while (len >= 64U) {
+    lh_md5_transform(ctx, p);
+    p += 64U;
+    len -= 64U;
+  }
+
+  if (len > 0) {
+    memcpy(ctx->buffer, p, len);
+    ctx->buffer_len = (unsigned int)len;
   }
   return LONEHASH_OK;
 }
