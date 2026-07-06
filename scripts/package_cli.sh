@@ -16,8 +16,13 @@ cmake --preset "$preset"
 cmake --build --preset "$preset" --target lh
 
 cp "$root/build/$preset/lh" "$prefix/bin/lh"
-strip_tool=${STRIP:-strip}
-"$strip_tool" "$prefix/bin/lh"
+case "$target" in
+  *apple-darwin) ;;
+  *)
+    strip_tool=${STRIP:-strip}
+    "$strip_tool" "$prefix/bin/lh"
+    ;;
+esac
 cp "$root/README.md" "$prefix/share/doc/lonehash/README.md"
 cp "$root/LICENSE" "$prefix/share/doc/lonehash/LICENSE"
 

@@ -84,9 +84,9 @@ release-matrix:
 
 finalize-slice: format test
 
-prerelease: finalize-slice asan package-source-smoke
+prerelease: finalize-slice lua-test asan package-source-smoke
 
-prerelease-hardening: prerelease package lua-artifacts package-checksums package-verify
+prerelease-hardening: prerelease release-matrix package lua-artifacts package-checksums package-verify
 
 release: clean prerelease-hardening
 
