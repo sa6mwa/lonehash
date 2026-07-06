@@ -8,7 +8,7 @@ help:
 	@printf '%s\n' \
 	  'build                  Configure and build debug preset' \
 	  'test                   Run debug tests' \
-	  'lua-test               Run Lua facade smoke tests against build/debug' \
+	  'lua-test               Run Lua facade smoke tests against build/release' \
 	  'lua-artifacts          Build Lua source tarball, rockspec, and source rock' \
 	  'asan                   Build and run ASan/UBSan preset' \
 	  'bench                  Run release-build local benchmarks' \
@@ -41,8 +41,8 @@ build-release:
 test test-debug: build-debug
 	ctest --preset debug
 
-lua-test: build-debug
-	test "$$(printf abc | ./build/debug/lh.sh -sq)" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+lua-test: build-release
+	tests/test_lua.sh "$$(pwd)" "$$(pwd)/build/release"
 
 lua-artifacts:
 	scripts/package_lua.sh

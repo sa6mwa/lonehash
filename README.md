@@ -45,7 +45,7 @@ The Lua facade links against `liblonehash` through the public C API only.
 
 ```sh
 make lua-test
-printf abc | ./build/debug/lh.sh -sq
+printf abc | ./build/release/lh.sh -sq
 lua lua/examples/hash_strings.lua
 ```
 
@@ -64,8 +64,8 @@ make bench
 ./build/release/lh -sq FILE
 ```
 
-`build/debug/lh.sh` is a generated Lua development runner for testing the
-source tree. It is intentionally not the performance path.
+`build/release/lh.sh` is a generated Lua development runner for testing the
+source tree against the optimized `liblonehash.so`.
 
 ## Example
 
