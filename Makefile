@@ -42,7 +42,7 @@ test test-debug: build-debug
 	ctest --preset debug
 
 lua-test: build-debug
-	test "$$(printf abc | ./lh.sh -sq)" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+	test "$$(printf abc | ./build/debug/lh.sh -sq)" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 
 lua-artifacts:
 	scripts/package_lua.sh

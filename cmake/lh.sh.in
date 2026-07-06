@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+root="@CMAKE_CURRENT_SOURCE_DIR@"
+build="@CMAKE_CURRENT_BINARY_DIR@"
+lua_bin=${LUA:-lua}
+
+export LUA_PATH="$root/lua/?.lua;$root/lua/?/init.lua;;"
+export LUA_CPATH="$build/?.so;$build/?/core.so;;"
+export LD_LIBRARY_PATH="$build${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export DYLD_LIBRARY_PATH="$build${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+
+exec "$lua_bin" "$root/lua/lh.lua" "$@"

@@ -24,5 +24,5 @@ printf abc >"$tmp"
 file_sha=$("$lua_bin" "$root/lua/examples/hash_file.lua" "$tmp")
 test "$file_sha" = "$sha"
 
-cli_sha=$(printf abc | "$lua_bin" "$root/lua/lh.lua" -sq)
+cli_sha=$(printf abc | "$build/lh.sh" -sq)
 test "$cli_sha" = "$sha"

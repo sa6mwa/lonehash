@@ -45,7 +45,7 @@ The Lua facade links against `liblonehash` through the public C API only.
 
 ```sh
 make lua-test
-printf abc | ./lh.sh -sq
+printf abc | ./build/debug/lh.sh -sq
 lua lua/examples/hash_strings.lua
 ```
 
