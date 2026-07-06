@@ -11,7 +11,7 @@ help:
 	  'lua-test               Run Lua facade smoke tests against build/debug' \
 	  'lua-artifacts          Build Lua source tarball, rockspec, and source rock' \
 	  'asan                   Build and run ASan/UBSan preset' \
-	  'bench                  Run local benchmarks' \
+	  'bench                  Run release-build local benchmarks' \
 	  'package                Build host library SDK and lh CLI tarballs' \
 	  'package-cli            Build host lh CLI tarball' \
 	  'package-source         Build source tarball' \
@@ -54,8 +54,8 @@ asan:
 	cmake --build --preset asan
 	ctest --preset asan
 
-bench benchmarks: build-debug
-	./build/debug/lonehash_bench
+bench benchmarks: build-release
+	./build/release/lonehash_bench
 
 bench-gate: bench
 

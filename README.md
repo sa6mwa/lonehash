@@ -55,6 +55,18 @@ Lua release artifacts are produced with:
 make lua-artifacts
 ```
 
+## Performance
+
+Use release builds for throughput measurements:
+
+```sh
+make bench
+./build/release/lh -sq FILE
+```
+
+`build/debug/lh.sh` is a generated Lua development runner for testing the
+source tree. It is intentionally not the performance path.
+
 ## Example
 
 ```c
