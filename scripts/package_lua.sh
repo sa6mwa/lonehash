@@ -37,7 +37,7 @@ sed \
 sed \
   -e "s/@LONEHASH_LUA_VERSION@/$version/g" \
   -e "s/@LONEHASH_LUA_ROCK_VERSION@/$version/g" \
-  "$root/lonehash-dev-1.rockspec.in" >"$stage/lonehash-$version-1.rockspec"
+  "$root/lonehash.rockspec.in" >"$stage/lonehash-$version-1.rockspec"
 cp "$stage/lonehash-$version-1.rockspec" "$rockspec"
 
 cat >"$stage/RELEASE_MANIFEST" <<EOF
