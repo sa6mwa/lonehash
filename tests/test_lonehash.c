@@ -122,10 +122,72 @@ static void test_error_paths(void) {
   lonehash_sha256_destroy(NULL);
 }
 
+static void test_large_one_shot_update_matches_streaming(void) {
+  lonehash_sha256 *sha_one;
+  lonehash_sha256 *sha_stream;
+  unsigned char *data;
+  unsigned char one_digest[LONEHASH_SHA256_DIGEST_SIZE];
+  unsigned char stream_digest[LONEHASH_SHA256_DIGEST_SIZE];
+  char one_hex[LONEHASH_SHA256_HEX_SIZE];
+  char stream_hex[LONEHASH_SHA256_HEX_SIZE];
+  size_t size;
+  size_t offset;
+  size_t chunk;
+
+  sha_one = NULL;
+  sha_stream = NULL;
+  size = (size_t)536870912UL;
+  data = (unsigned char *)malloc(size);
+  if (data == NULL) {
+    fprintf(stderr, "large update regression allocation failed\n");
+    failures++;
+    return;
+  }
+  memset(data, 'a', size);
+
+  if (lonehash_sha256_create(&sha_one) != LONEHASH_OK ||
+      lonehash_sha256_create(&sha_stream) != LONEHASH_OK) {
+    fprintf(stderr, "large update regression handle allocation failed\n");
+    lonehash_sha256_destroy(sha_one);
+    lonehash_sha256_destroy(sha_stream);
+    free(data);
+    failures++;
+    return;
+  }
+  expect_status("sha256 large one-shot",
+                sha_one->digest_buffer(sha_one, data, size, one_digest),
+                LONEHASH_OK);
+
+  offset = 0;
+  chunk = 1048576UL;
+  while (offset < size) {
+    size_t n;
+
+    n = size - offset;
+    if (n > chunk) {
+      n = chunk;
+    }
+    expect_status("sha256 large stream update",
+                  sha_stream->update(sha_stream, data + offset, n),
+                  LONEHASH_OK);
+    offset += n;
+  }
+  expect_status("sha256 large stream final",
+                sha_stream->final(sha_stream, stream_digest), LONEHASH_OK);
+  sha_one->hex(sha_one, one_digest, one_hex);
+  sha_stream->hex(sha_stream, stream_digest, stream_hex);
+  expect_string("sha256 large one-shot vs stream", one_hex, stream_hex);
+
+  lonehash_sha256_destroy(sha_one);
+  lonehash_sha256_destroy(sha_stream);
+  free(data);
+}
+
 int main(void) {
   test_sha256_vectors();
   test_md5_vectors();
   test_file_helpers();
   test_error_paths();
+  test_large_one_shot_update_matches_streaming();
   return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

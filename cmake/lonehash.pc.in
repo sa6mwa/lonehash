@@ -1,7 +1,7 @@
 prefix=${pcfiledir}/../..
 exec_prefix=${prefix}
-includedir=${prefix}/include
-libdir=${prefix}/lib
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
 
 Name: lonehash
 Description: C89 SHA-256 and MD5 library with receiver-style streaming APIs

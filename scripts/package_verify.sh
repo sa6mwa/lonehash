@@ -193,6 +193,30 @@ EOF
     "$consumer/cmake-build/consumer"
 }
 
+verify_custom_install_dirs() {
+  smoke="$tmp/custom-install-dirs"
+  prefix="$smoke/prefix"
+  cmake -S "$root" -B "$smoke/build" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLONEHASH_BUILD_EXAMPLES=OFF \
+    -DLONEHASH_BUILD_TESTS=OFF \
+    -DLONEHASH_BUILD_BENCHMARKS=OFF \
+    -DLONEHASH_BUILD_CLI=OFF \
+    -DCMAKE_INSTALL_LIBDIR=lib64 \
+    -DCMAKE_INSTALL_INCLUDEDIR=include/lonehash-sdk
+  cmake --build "$smoke/build"
+  cmake --install "$smoke/build" --prefix "$prefix"
+  test -f "$prefix/lib64/pkgconfig/lonehash.pc"
+  grep 'includedir=${prefix}/include/lonehash-sdk' \
+    "$prefix/lib64/pkgconfig/lonehash.pc" >/dev/null
+  grep 'libdir=${prefix}/lib64' "$prefix/lib64/pkgconfig/lonehash.pc" >/dev/null
+  write_consumer_source "$smoke/pkgconfig"
+  cc -o "$smoke/pkgconfig/consumer" "$smoke/pkgconfig/main.c" \
+    $(PKG_CONFIG_PATH="$prefix/lib64/pkgconfig" pkg-config --cflags --libs lonehash)
+  LD_LIBRARY_PATH="$prefix/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+    "$smoke/pkgconfig/consumer"
+}
+
 if [ ! -f "$manifest" ]; then
   fail "missing checksum manifest: $manifest"
 fi
@@ -204,6 +228,7 @@ mkdir -p "$tmp"
 
 scan_path "$(basename "$manifest")" "$manifest" "$root" "repository path"
 scan_path "$(basename "$manifest")" "$manifest" "${HOME:-}" "HOME path"
+verify_custom_install_dirs
 
 find "$dist" -maxdepth 1 -type f -printf '%f\n' | sort | while IFS= read -r file; do
   case "$file" in

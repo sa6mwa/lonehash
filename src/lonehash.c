@@ -95,7 +95,7 @@ static void lh_add_bits(lh_u32 *low, lh_u32 *high, size_t len) {
 
   before = *low;
   *low = lh_wrap(*low + lh_wrap(bytes_low << 3));
-  *high = lh_wrap(*high + lh_wrap(bytes_high << 3));
+  *high = lh_wrap(*high + bytes_high);
   *high = lh_wrap(*high + (bytes_low >> 29));
   if (*low < before) {
     *high = lh_wrap(*high + 1UL);
