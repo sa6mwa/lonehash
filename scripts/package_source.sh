@@ -10,7 +10,7 @@ rm -rf "$stage"
 mkdir -p "$stage" "$dist"
 
 if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git -C "$root" ls-files --cached --others --exclude-standard >"$root/.cache/source-manifest"
+  git -C "$root" ls-files --cached >"$root/.cache/source-manifest"
 else
   if [ ! -f "$root/RELEASE_MANIFEST" ]; then
     echo "RELEASE_MANIFEST is required outside a git worktree" >&2

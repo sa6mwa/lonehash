@@ -320,6 +320,9 @@ static lonehash_status lh_sha256_update(lonehash_sha256 *self, const void *data,
   if (!lh_valid_sha256(self) || (data == NULL && len != 0)) {
     return LONEHASH_ERROR_NULL;
   }
+  if (len == 0) {
+    return LONEHASH_OK;
+  }
   ctx = (lh_sha256_impl *)self->impl;
   p = (const unsigned char *)data;
   lh_add_bits(&ctx->bit_count_low, &ctx->bit_count_high, len);
@@ -494,6 +497,9 @@ static lonehash_status lh_md5_update(lonehash_md5 *self, const void *data,
 
   if (!lh_valid_md5(self) || (data == NULL && len != 0)) {
     return LONEHASH_ERROR_NULL;
+  }
+  if (len == 0) {
+    return LONEHASH_OK;
   }
   ctx = (lh_md5_impl *)self->impl;
   p = (const unsigned char *)data;

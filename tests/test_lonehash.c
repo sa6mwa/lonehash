@@ -109,6 +109,8 @@ static void test_file_helpers(void) {
 
 static void test_error_paths(void) {
   lonehash_sha256 *sha;
+  lonehash_md5 *md5;
+  unsigned char digest[LONEHASH_SHA256_DIGEST_SIZE];
 
   expect_status("sha256 null out", lonehash_sha256_create(NULL),
                 LONEHASH_ERROR_NULL);
@@ -116,10 +118,22 @@ static void test_error_paths(void) {
                 LONEHASH_OK);
   expect_status("sha256 null update", sha->update(sha, NULL, 1),
                 LONEHASH_ERROR_NULL);
+  expect_status("sha256 buffered byte", sha->update(sha, "a", 1), LONEHASH_OK);
+  expect_status("sha256 null zero update", sha->update(sha, NULL, 0),
+                LONEHASH_OK);
+  expect_status("sha256 after null zero final", sha->final(sha, digest),
+                LONEHASH_OK);
   expect_status("sha256 null path", sha->digest_path(sha, NULL, NULL),
                 LONEHASH_ERROR_NULL);
   lonehash_sha256_destroy(sha);
   lonehash_sha256_destroy(NULL);
+
+  expect_status("md5 create errors", lonehash_md5_create(&md5), LONEHASH_OK);
+  expect_status("md5 null update", md5->update(md5, NULL, 1),
+                LONEHASH_ERROR_NULL);
+  expect_status("md5 buffered byte", md5->update(md5, "a", 1), LONEHASH_OK);
+  expect_status("md5 null zero update", md5->update(md5, NULL, 0), LONEHASH_OK);
+  lonehash_md5_destroy(md5);
 }
 
 static void test_large_one_shot_update_matches_streaming(void) {
