@@ -8,64 +8,261 @@
 extern "C" {
 #endif
 
+/** @brief Major component of the compiled library version. */
 #define LONEHASH_VERSION_MAJOR @LONEHASH_VERSION_MAJOR@
+/** @brief Minor component of the compiled library version. */
 #define LONEHASH_VERSION_MINOR @LONEHASH_VERSION_MINOR@
+/** @brief Patch component of the compiled library version. */
 #define LONEHASH_VERSION_PATCH @LONEHASH_VERSION_PATCH@
+/** @brief Compiled library version as a NUL-terminated `X.Y.Z` string. */
 #define LONEHASH_VERSION "@LONEHASH_VERSION@"
 
+/** @brief Number of bytes in a SHA-256 digest. */
 #define LONEHASH_SHA256_DIGEST_SIZE 32
+/** @brief Number of bytes in one SHA-256 input block. */
 #define LONEHASH_SHA256_BLOCK_SIZE 64
+/** @brief Bytes required for a lowercase SHA-256 hex string, including NUL. */
 #define LONEHASH_SHA256_HEX_SIZE 65
 
+/** @brief Number of bytes in an MD5 digest. */
 #define LONEHASH_MD5_DIGEST_SIZE 16
+/** @brief Number of bytes in one MD5 input block. */
 #define LONEHASH_MD5_BLOCK_SIZE 64
+/** @brief Bytes required for a lowercase MD5 hex string, including NUL. */
 #define LONEHASH_MD5_HEX_SIZE 33
 
+/**
+ * @brief Result code returned by fallible lonehash operations.
+ *
+ * A status describes the operation that just completed; use
+ * lonehash_status_string() only for diagnostics.
+ */
 typedef enum lonehash_status {
+  /** @brief The operation completed successfully. */
   LONEHASH_OK = 0,
+  /** @brief A required handle, input, output, path, or stream was NULL. */
   LONEHASH_ERROR_NULL = 1,
+  /** @brief Allocation of a context or its private state failed. */
   LONEHASH_ERROR_ALLOC = 2,
+  /** @brief A file open, read, or close operation failed. */
   LONEHASH_ERROR_IO = 3
 } lonehash_status;
 
+/**
+ * @brief Receiver shell for an allocated SHA-256 hashing context.
+ *
+ * Create instances with lonehash_sha256_create() and dispose of them with
+ * lonehash_sha256_destroy(). Call operations in receiver style, for example
+ * `sha->update(sha, data, len)`. The method fields are initialized by a
+ * successful create call; applications must not replace them or inspect,
+ * modify, copy, or retain `impl`.
+ */
 typedef struct lonehash_sha256 lonehash_sha256;
+/**
+ * @brief Receiver shell for an allocated MD5 hashing context.
+ *
+ * Create instances with lonehash_md5_create() and dispose of them with
+ * lonehash_md5_destroy(). Call operations in receiver style, for example
+ * `md5->update(md5, data, len)`. The method fields are initialized by a
+ * successful create call; applications must not replace them or inspect,
+ * modify, copy, or retain `impl`.
+ */
 typedef struct lonehash_md5 lonehash_md5;
 
+/** @brief Method table and private state holder for a SHA-256 context. */
 struct lonehash_sha256 {
+  /**
+   * @brief Reset this context to the empty SHA-256 input state.
+   * @param self Context returned by lonehash_sha256_create().
+   * @return LONEHASH_OK or LONEHASH_ERROR_NULL for an invalid context.
+   */
   lonehash_status (*reset)(lonehash_sha256 *self);
+  /**
+   * @brief Append bytes to this context.
+   * @param self Context returned by lonehash_sha256_create().
+   * @param data Bytes to append; it may be NULL only when @p len is zero.
+   * @param len Number of bytes to append.
+   * @return LONEHASH_OK or LONEHASH_ERROR_NULL.
+   */
   lonehash_status (*update)(lonehash_sha256 *self, const void *data,
                             size_t len);
+  /**
+   * @brief Finalize the current input into a raw SHA-256 digest.
+   * @param self Context returned by lonehash_sha256_create().
+   * @param digest Output array with LONEHASH_SHA256_DIGEST_SIZE bytes.
+   * @return LONEHASH_OK or LONEHASH_ERROR_NULL.
+   *
+   * On success, this method resets @p self so it is immediately ready for a
+   * new input stream.
+   */
   lonehash_status (*final)(lonehash_sha256 *self, unsigned char digest[32]);
+  /**
+   * @brief Hash one memory buffer, replacing any current streaming input.
+   * @param self Context returned by lonehash_sha256_create().
+   * @param data Bytes to hash; it may be NULL only when @p len is zero.
+   * @param len Number of bytes to hash.
+   * @param digest Output array with LONEHASH_SHA256_DIGEST_SIZE bytes.
+   * @return LONEHASH_OK or LONEHASH_ERROR_NULL.
+   */
   lonehash_status (*digest_buffer)(lonehash_sha256 *self, const void *data,
                                    size_t len, unsigned char digest[32]);
+  /**
+   * @brief Hash a stream from its current position through end-of-file.
+   * @param self Context returned by lonehash_sha256_create().
+   * @param file Open binary stream; this function neither rewinds nor closes
+   * it.
+   * @param digest Output array with LONEHASH_SHA256_DIGEST_SIZE bytes.
+   * @return LONEHASH_OK, LONEHASH_ERROR_NULL, or LONEHASH_ERROR_IO.
+   *
+   * This method replaces any current streaming input and uses a bounded
+   * internal read buffer.
+   */
   lonehash_status (*digest_file)(lonehash_sha256 *self, FILE *file,
                                  unsigned char digest[32]);
+  /**
+   * @brief Open and hash a file in binary mode.
+   * @param self Context returned by lonehash_sha256_create().
+   * @param path NUL-terminated filesystem path.
+   * @param digest Output array with LONEHASH_SHA256_DIGEST_SIZE bytes.
+   * @return LONEHASH_OK, LONEHASH_ERROR_NULL, or LONEHASH_ERROR_IO.
+   *
+   * This method closes the file before it returns and replaces any current
+   * streaming input.
+   */
   lonehash_status (*digest_path)(lonehash_sha256 *self, const char *path,
                                  unsigned char digest[32]);
+  /**
+   * @brief Encode a raw SHA-256 digest as lowercase hexadecimal.
+   * @param self SHA-256 context; it is not modified.
+   * @param digest Input array with LONEHASH_SHA256_DIGEST_SIZE bytes.
+   * @param hex Output array with LONEHASH_SHA256_HEX_SIZE bytes.
+   *
+   * The output is NUL-terminated. If @p digest or @p hex is NULL, this method
+   * leaves the output unchanged.
+   */
   void (*hex)(const lonehash_sha256 *self, const unsigned char digest[32],
               char hex[65]);
+  /** @brief Opaque implementation state; do not access or copy it. @private */
   void *impl;
 };
 
+/** @brief Method table and private state holder for an MD5 context. */
 struct lonehash_md5 {
+  /**
+   * @brief Reset this context to the empty MD5 input state.
+   * @param self Context returned by lonehash_md5_create().
+   * @return LONEHASH_OK or LONEHASH_ERROR_NULL for an invalid context.
+   */
   lonehash_status (*reset)(lonehash_md5 *self);
+  /**
+   * @brief Append bytes to this context.
+   * @param self Context returned by lonehash_md5_create().
+   * @param data Bytes to append; it may be NULL only when @p len is zero.
+   * @param len Number of bytes to append.
+   * @return LONEHASH_OK or LONEHASH_ERROR_NULL.
+   */
   lonehash_status (*update)(lonehash_md5 *self, const void *data, size_t len);
+  /**
+   * @brief Finalize the current input into a raw MD5 digest.
+   * @param self Context returned by lonehash_md5_create().
+   * @param digest Output array with LONEHASH_MD5_DIGEST_SIZE bytes.
+   * @return LONEHASH_OK or LONEHASH_ERROR_NULL.
+   *
+   * On success, this method resets @p self so it is immediately ready for a
+   * new input stream.
+   */
   lonehash_status (*final)(lonehash_md5 *self, unsigned char digest[16]);
+  /**
+   * @brief Hash one memory buffer, replacing any current streaming input.
+   * @param self Context returned by lonehash_md5_create().
+   * @param data Bytes to hash; it may be NULL only when @p len is zero.
+   * @param len Number of bytes to hash.
+   * @param digest Output array with LONEHASH_MD5_DIGEST_SIZE bytes.
+   * @return LONEHASH_OK or LONEHASH_ERROR_NULL.
+   */
   lonehash_status (*digest_buffer)(lonehash_md5 *self, const void *data,
                                    size_t len, unsigned char digest[16]);
+  /**
+   * @brief Hash a stream from its current position through end-of-file.
+   * @param self Context returned by lonehash_md5_create().
+   * @param file Open binary stream; this function neither rewinds nor closes
+   * it.
+   * @param digest Output array with LONEHASH_MD5_DIGEST_SIZE bytes.
+   * @return LONEHASH_OK, LONEHASH_ERROR_NULL, or LONEHASH_ERROR_IO.
+   *
+   * This method replaces any current streaming input and uses a bounded
+   * internal read buffer.
+   */
   lonehash_status (*digest_file)(lonehash_md5 *self, FILE *file,
                                  unsigned char digest[16]);
+  /**
+   * @brief Open and hash a file in binary mode.
+   * @param self Context returned by lonehash_md5_create().
+   * @param path NUL-terminated filesystem path.
+   * @param digest Output array with LONEHASH_MD5_DIGEST_SIZE bytes.
+   * @return LONEHASH_OK, LONEHASH_ERROR_NULL, or LONEHASH_ERROR_IO.
+   *
+   * This method closes the file before it returns and replaces any current
+   * streaming input.
+   */
   lonehash_status (*digest_path)(lonehash_md5 *self, const char *path,
                                  unsigned char digest[16]);
+  /**
+   * @brief Encode a raw MD5 digest as lowercase hexadecimal.
+   * @param self MD5 context; it is not modified.
+   * @param digest Input array with LONEHASH_MD5_DIGEST_SIZE bytes.
+   * @param hex Output array with LONEHASH_MD5_HEX_SIZE bytes.
+   *
+   * The output is NUL-terminated. If @p digest or @p hex is NULL, this method
+   * leaves the output unchanged.
+   */
   void (*hex)(const lonehash_md5 *self, const unsigned char digest[16],
               char hex[33]);
+  /** @brief Opaque implementation state; do not access or copy it. @private */
   void *impl;
 };
 
+/**
+ * @brief Return a stable diagnostic string for a status code.
+ * @param status Status value to describe.
+ * @return A static, non-NULL string that must not be freed or modified.
+ */
 const char *lonehash_status_string(lonehash_status status);
+/**
+ * @brief Allocate and initialize a SHA-256 receiver shell.
+ * @param out Receives an owned context on success; it is set to NULL on an
+ * allocation failure.
+ * @return LONEHASH_OK, LONEHASH_ERROR_NULL, or LONEHASH_ERROR_ALLOC.
+ *
+ * Pass the resulting context to lonehash_sha256_destroy() exactly once after
+ * all receiver operations have completed.
+ */
 lonehash_status lonehash_sha256_create(lonehash_sha256 **out);
+/**
+ * @brief Destroy an owned SHA-256 context.
+ * @param self Context returned by lonehash_sha256_create(), or NULL.
+ *
+ * Passing NULL is a no-op. A non-NULL context must not be used or destroyed
+ * again after this call returns.
+ */
 void lonehash_sha256_destroy(lonehash_sha256 *self);
+/**
+ * @brief Allocate and initialize an MD5 receiver shell.
+ * @param out Receives an owned context on success; it is set to NULL on an
+ * allocation failure.
+ * @return LONEHASH_OK, LONEHASH_ERROR_NULL, or LONEHASH_ERROR_ALLOC.
+ *
+ * Pass the resulting context to lonehash_md5_destroy() exactly once after all
+ * receiver operations have completed.
+ */
 lonehash_status lonehash_md5_create(lonehash_md5 **out);
+/**
+ * @brief Destroy an owned MD5 context.
+ * @param self Context returned by lonehash_md5_create(), or NULL.
+ *
+ * Passing NULL is a no-op. A non-NULL context must not be used or destroyed
+ * again after this call returns.
+ */
 void lonehash_md5_destroy(lonehash_md5 *self);
 
 #ifdef __cplusplus

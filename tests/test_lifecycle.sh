@@ -4,6 +4,31 @@ set -euo pipefail
 root=${1:?repository root is required}
 cd "$root"
 
+documented_public_symbol() {
+  awk -v symbol="$1" '
+    /\/\*\*/ {
+      comment = $0
+      in_comment = ($0 !~ /\*\//)
+      next
+    }
+    in_comment {
+      comment = comment "\n" $0
+      if (/\*\//) {
+        in_comment = 0
+      }
+      next
+    }
+    index($0, symbol) {
+      if (comment ~ /@brief/) {
+        found = 1
+      }
+      exit
+    }
+    $0 !~ /^[[:space:]]*$/ { comment = "" }
+    END { exit(found ? 0 : 1) }
+  ' include/lonehash/lonehash.h.in
+}
+
 cmake --list-presets | grep -F '"debug"' >/dev/null
 cmake --list-presets | grep -F '"debug-lua"' >/dev/null
 cmake --list-presets | grep -F '"valgrind"' >/dev/null
@@ -38,6 +63,22 @@ grep -F 'ctest --test-dir "$root/build/$preset" --output-on-failure' scripts/rel
 grep -F '"$STRIP" -g "$prefix/lib/liblonehash.a"' scripts/package.sh >/dev/null
 test -x scripts/stage_lua_rock_sources.sh
 test -x scripts/build_lua_rock.sh
+
+for symbol in \
+  LONEHASH_VERSION_MAJOR LONEHASH_VERSION_MINOR LONEHASH_VERSION_PATCH \
+  LONEHASH_VERSION LONEHASH_SHA256_DIGEST_SIZE LONEHASH_SHA256_BLOCK_SIZE \
+  LONEHASH_SHA256_HEX_SIZE LONEHASH_MD5_DIGEST_SIZE LONEHASH_MD5_BLOCK_SIZE \
+  LONEHASH_MD5_HEX_SIZE lonehash_status LONEHASH_OK LONEHASH_ERROR_NULL \
+  LONEHASH_ERROR_ALLOC LONEHASH_ERROR_IO lonehash_sha256 lonehash_md5 \
+  '(*reset)' '(*update)' '(*final)' '(*digest_buffer)' '(*digest_file)' \
+  '(*digest_path)' '(*hex)' 'void *impl' lonehash_status_string \
+  lonehash_sha256_create lonehash_sha256_destroy lonehash_md5_create \
+  lonehash_md5_destroy; do
+  documented_public_symbol "$symbol" || {
+    echo "public API symbol lacks a Doxygen @brief comment: $symbol" >&2
+    exit 1
+  }
+done
 
 toolchain=$(scripts/cpkt-toolchains.sh discover x86_64-linux-gnu)
 printf '%s\n' "$toolchain" | grep -Fx 'source=bootlin' >/dev/null
