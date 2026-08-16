@@ -183,7 +183,12 @@ if(LONEHASH_BUILD_CLI)
     target_link_libraries(lh PRIVATE lonehash)
   endif()
   if(LONEHASH_CLI_STATIC AND TARGET lonehash_static)
-    target_link_options(lh PRIVATE "$<$<NOT:$<PLATFORM_ID:Darwin>>:-static>")
+    if(MSVC)
+      set_property(TARGET lonehash_static lh PROPERTY MSVC_RUNTIME_LIBRARY
+                                                   "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE)
+      target_link_options(lh PRIVATE -static)
+    endif()
   endif()
 endif()
 

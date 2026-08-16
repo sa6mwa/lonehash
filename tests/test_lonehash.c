@@ -1,6 +1,11 @@
 #include "lonehash/lonehash.h"
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
 #include <pthread.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +17,16 @@ typedef struct sha256_thread_data {
   const unsigned char *expected;
   int failed;
 } sha256_thread_data;
+
+#ifdef _WIN32
+typedef HANDLE sha256_thread;
+typedef DWORD sha256_thread_result;
+#define SHA256_THREAD_CALL WINAPI
+#else
+typedef pthread_t sha256_thread;
+typedef void *sha256_thread_result;
+#define SHA256_THREAD_CALL
+#endif
 
 static void expect_string(const char *name, const char *got, const char *want) {
   if (strcmp(got, want) != 0) {
@@ -215,7 +230,7 @@ static void test_large_one_shot_update_matches_streaming(void) {
   free(data);
 }
 
-static void *sha256_thread_main(void *arg) {
+static sha256_thread_result SHA256_THREAD_CALL sha256_thread_main(void *arg) {
   sha256_thread_data *data;
   unsigned char digest[LONEHASH_SHA256_DIGEST_SIZE];
   lonehash_sha256 *sha;
@@ -224,7 +239,7 @@ static void *sha256_thread_main(void *arg) {
   data = (sha256_thread_data *)arg;
   if (lonehash_sha256_create(&sha) != LONEHASH_OK) {
     data->failed = 1;
-    return NULL;
+    return 0;
   }
   for (i = 0; i < 128U; ++i) {
     if (sha->digest_buffer(sha, data->input, 128U, digest) != LONEHASH_OK ||
@@ -234,14 +249,14 @@ static void *sha256_thread_main(void *arg) {
     }
   }
   lonehash_sha256_destroy(sha);
-  return NULL;
+  return 0;
 }
 
 static void test_sha256_acceleration_initialization_is_per_context(void) {
   unsigned char input[128];
   unsigned char expected[LONEHASH_SHA256_DIGEST_SIZE];
   lonehash_sha256 *sha;
-  pthread_t threads[8];
+  sha256_thread threads[8];
   sha256_thread_data data[8];
   unsigned int i;
   unsigned int started;
@@ -260,14 +275,29 @@ static void test_sha256_acceleration_initialization_is_per_context(void) {
     data[i].input = input;
     data[i].expected = expected;
     data[i].failed = 0;
+#ifdef _WIN32
+    threads[i] = CreateThread(NULL, 0, sha256_thread_main, &data[i], 0, NULL);
+    if (threads[i] == NULL) {
+#else
     if (pthread_create(&threads[i], NULL, sha256_thread_main, &data[i]) != 0) {
+#endif
       fprintf(stderr, "sha256 threaded initialization create failed\n");
       break;
     }
     started++;
   }
   for (i = 0; i < started; ++i) {
+#ifdef _WIN32
+    if (WaitForSingleObject(threads[i], INFINITE) != WAIT_OBJECT_0) {
+      CloseHandle(threads[i]);
+      fprintf(stderr, "sha256 threaded initialization failed\n");
+      failures++;
+      return;
+    }
+    if (!CloseHandle(threads[i]) || data[i].failed) {
+#else
     if (pthread_join(threads[i], NULL) != 0 || data[i].failed) {
+#endif
       fprintf(stderr, "sha256 threaded initialization failed\n");
       failures++;
       return;

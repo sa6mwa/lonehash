@@ -27,6 +27,8 @@ grep -F 'set(LONEHASH_HAVE_ARM_SHA2 0)' CMakeLists.txt >/dev/null
 grep -F 'WINDOWS_EXPORT_ALL_SYMBOLS ON' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_LUA_EXECUTABLE' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_LUA_SOURCE_INCLUDE_DIR' CMakeLists.txt >/dev/null
+grep -F 'MSVC_RUNTIME_LIBRARY' CMakeLists.txt >/dev/null
+grep -F 'CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE' CMakeLists.txt >/dev/null
 grep -F 'ctest --test-dir "$root/build/$preset" --output-on-failure' scripts/release_matrix.sh >/dev/null
 grep -F '"$STRIP" -g "$prefix/lib/liblonehash.a"' scripts/package.sh >/dev/null
 test -x scripts/stage_lua_rock_sources.sh
