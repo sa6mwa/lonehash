@@ -54,4 +54,5 @@ unpack="$rock_stage/unpack"
 mkdir -p "$unpack"
 unzip -q "$rock_stage/$source_rock" -d "$unpack"
 cp "$rockspec" "$unpack/$(basename "$rockspec")"
+rm -f "$dist/$source_rock"
 (cd "$unpack" && zip -q "$dist/$source_rock" "$(basename "$rockspec")" "$source_archive")

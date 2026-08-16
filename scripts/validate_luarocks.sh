@@ -12,12 +12,19 @@ rockspec="$dist/lonehash-$version-1.rockspec"
 source_rock="$dist/lonehash-$version-1.src.rock"
 source_archive="$dist/lonehash-lua-$version.tar.gz"
 
+require_no_local_paths() {
+  if grep -a -E 'file://|/home/|/tmp/|/build/|/.cache/' "$1" >/dev/null; then
+    echo "forbidden local path in Lua artifact: $1" >&2
+    exit 1
+  fi
+}
+
 for artifact in "$rockspec" "$source_rock" "$source_archive"; do
   test -f "$artifact" || { echo "missing Lua artifact: $artifact" >&2; exit 1; }
 done
 grep -F "version = \"$version-1\"" "$rockspec" >/dev/null
 grep -F "url = \"lonehash-lua-$version.tar.gz\"" "$rockspec" >/dev/null
-! grep -E 'file://|/home/|/tmp/|/build/|/.cache/' "$rockspec" >/dev/null
+require_no_local_paths "$rockspec"
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
@@ -36,8 +43,8 @@ for file in \
   lua/lonehash.lua lua/lonehash/core.c include/lonehash/lonehash.h; do
   test -f "$stage/$file" || { echo "missing standalone Lua source: $file" >&2; exit 1; }
 done
-! grep -a -E 'file://|/home/|/tmp/|/build/|/.cache/' "$source_archive" >/dev/null
-! grep -a -E 'file://|/home/|/tmp/|/build/|/.cache/' "$source_rock" >/dev/null
+require_no_local_paths "$source_archive"
+require_no_local_paths "$source_rock"
 
 if [[ -n "${LONEHASH_PREFIX:-}" ]]; then
   (cd "$stage" && LONEHASH_PREFIX="$LONEHASH_PREFIX" ./scripts/build_lua_rock.sh test)

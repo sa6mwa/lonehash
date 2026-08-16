@@ -49,6 +49,12 @@ done
 quiet_file=$("$lh" --md5 --quiet "$tmp/abc.txt")
 test "$quiet_file" = "900150983cd24fb0d6963f7d28e17f72"
 
+if "$lh" --quiet "$tmp/abc.txt" >/dev/full 2>"$tmp/write-error.err"; then
+  echo 'CLI accepted a stdout write failure' >&2
+  exit 1
+fi
+grep 'stdout: write failed' "$tmp/write-error.err" >/dev/null
+
 if "$lh" --quiet "$tmp/abc.txt" "$tmp/abc.txt" >"$tmp/quiet-many.out" 2>"$tmp/quiet-many.err"; then
   exit 1
 fi

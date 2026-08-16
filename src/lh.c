@@ -95,18 +95,19 @@ static int lh_digest_path(lh_algorithm alg, const char *path, char *hex) {
   return rc;
 }
 
-static void lh_print_sum(const char *hex, const char *name, int nul) {
-  fputs(hex, stdout);
-  fputs("  ", stdout);
-  fputs(name, stdout);
-  fputc(nul ? '\0' : '\n', stdout);
+static int lh_print_sum(const char *hex, const char *name, int nul) {
+  if (fputs(hex, stdout) == EOF || fputs("  ", stdout) == EOF ||
+      fputs(name, stdout) == EOF || fputc(nul ? '\0' : '\n', stdout) == EOF) {
+    return 1;
+  }
+  return fflush(stdout) == EOF ? 1 : 0;
 }
 
-static void lh_print_quiet_sum(const char *hex, int nul) {
-  fputs(hex, stdout);
-  if (!nul) {
-    fputc('\n', stdout);
+static int lh_print_quiet_sum(const char *hex, int nul) {
+  if (fputs(hex, stdout) == EOF || (!nul && fputc('\n', stdout) == EOF)) {
+    return 1;
   }
+  return fflush(stdout) == EOF ? 1 : 0;
 }
 
 int main(int argc, char **argv) {
@@ -168,9 +169,13 @@ int main(int argc, char **argv) {
       return 1;
     }
     if (quiet) {
-      lh_print_quiet_sum(hex, nul);
+      failed = lh_print_quiet_sum(hex, nul);
     } else {
-      lh_print_sum(hex, "-", nul);
+      failed = lh_print_sum(hex, "-", nul);
+    }
+    if (failed) {
+      fprintf(stderr, "%s: stdout: write failed\n", prog);
+      return 1;
     }
     return 0;
   }
@@ -185,9 +190,16 @@ int main(int argc, char **argv) {
       fprintf(stderr, "%s: %s: read failed\n", prog, argv[i]);
       failed = 1;
     } else if (quiet) {
-      lh_print_quiet_sum(hex, nul);
+      if (lh_print_quiet_sum(hex, nul) != 0) {
+        fprintf(stderr, "%s: stdout: write failed\n", prog);
+        return 1;
+      }
     } else {
-      lh_print_sum(hex, strcmp(argv[i], "-") == 0 ? "-" : argv[i], nul);
+      if (lh_print_sum(hex, strcmp(argv[i], "-") == 0 ? "-" : argv[i],
+                       nul) != 0) {
+        fprintf(stderr, "%s: stdout: write failed\n", prog);
+        return 1;
+      }
     }
   }
 
