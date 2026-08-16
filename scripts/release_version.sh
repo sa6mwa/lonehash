@@ -18,6 +18,7 @@ fi
 
 if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   for tag in $(git -C "$root" tag --points-at HEAD --list); do
+    # Lifecycle releases use only lightweight vX.Y.Z tags on HEAD.
     if is_semver "${tag#v}" && [ "${tag#v}" != "$tag" ] \
       && [ "$(git -C "$root" cat-file -t "refs/tags/$tag")" = commit ]; then
       printf '%s\n' "${tag#v}"

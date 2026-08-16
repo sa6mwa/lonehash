@@ -30,6 +30,8 @@ typedef struct lh_sha256_impl {
   lh_u32 bit_count_high;
   unsigned char buffer[LONEHASH_SHA256_BLOCK_SIZE];
   unsigned int buffer_len;
+  int use_sha_ni;
+  int use_arm_sha2;
 } lh_sha256_impl;
 
 typedef struct lh_md5_impl {
@@ -266,23 +268,13 @@ static void lh_sha256_transform_scalar(lh_sha256_impl *ctx,
 static void lh_sha256_transform(lh_sha256_impl *ctx,
                                 const unsigned char block[64]) {
 #if LONEHASH_HAVE_SHA_NI
-  static int use_sha_ni = -1;
-
-  if (use_sha_ni < 0) {
-    use_sha_ni = lonehash_sha256_ni_available();
-  }
-  if (use_sha_ni) {
+  if (ctx->use_sha_ni) {
     lonehash_sha256_ni_transform(ctx->state, block);
     return;
   }
 #endif
 #if LONEHASH_HAVE_ARM_SHA2
-  static int use_arm_sha2 = -1;
-
-  if (use_arm_sha2 < 0) {
-    use_arm_sha2 = lonehash_sha256_armv8_available();
-  }
-  if (use_arm_sha2) {
+  if (ctx->use_arm_sha2) {
     lonehash_sha256_armv8_transform(ctx->state, block);
     return;
   }
@@ -359,6 +351,8 @@ static lonehash_status lh_sha256_final(lonehash_sha256 *self,
                                        unsigned char digest[32]) {
   lh_sha256_impl *ctx;
   unsigned int i;
+  int use_sha_ni;
+  int use_arm_sha2;
 
   if (!lh_valid_sha256(self) || digest == NULL) {
     return LONEHASH_ERROR_NULL;
@@ -383,7 +377,11 @@ static lonehash_status lh_sha256_final(lonehash_sha256 *self,
   for (i = 0; i < 8U; ++i) {
     lh_store_be32(digest + (i * 4U), ctx->state[i]);
   }
+  use_sha_ni = ctx->use_sha_ni;
+  use_arm_sha2 = ctx->use_arm_sha2;
   memset(ctx, 0, sizeof(*ctx));
+  ctx->use_sha_ni = use_sha_ni;
+  ctx->use_arm_sha2 = use_arm_sha2;
   return LONEHASH_OK;
 }
 
@@ -738,6 +736,12 @@ lonehash_status lonehash_sha256_create(lonehash_sha256 **out) {
     free(self);
     return LONEHASH_ERROR_ALLOC;
   }
+#if LONEHASH_HAVE_SHA_NI
+  impl->use_sha_ni = lonehash_sha256_ni_available();
+#endif
+#if LONEHASH_HAVE_ARM_SHA2
+  impl->use_arm_sha2 = lonehash_sha256_armv8_available();
+#endif
   self->reset = lh_sha256_reset;
   self->update = lh_sha256_update;
   self->final = lh_sha256_final;

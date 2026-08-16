@@ -1,10 +1,17 @@
 #include "lonehash/lonehash.h"
 
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 static int failures = 0;
+
+typedef struct sha256_thread_data {
+  const unsigned char *input;
+  const unsigned char *expected;
+  int failed;
+} sha256_thread_data;
 
 static void expect_string(const char *name, const char *got, const char *want) {
   if (strcmp(got, want) != 0) {
@@ -198,11 +205,75 @@ static void test_large_one_shot_update_matches_streaming(void) {
   free(data);
 }
 
+static void *sha256_thread_main(void *arg) {
+  sha256_thread_data *data;
+  unsigned char digest[LONEHASH_SHA256_DIGEST_SIZE];
+  lonehash_sha256 *sha;
+  unsigned int i;
+
+  data = (sha256_thread_data *)arg;
+  if (lonehash_sha256_create(&sha) != LONEHASH_OK) {
+    data->failed = 1;
+    return NULL;
+  }
+  for (i = 0; i < 128U; ++i) {
+    if (sha->digest_buffer(sha, data->input, 128U, digest) != LONEHASH_OK ||
+        memcmp(digest, data->expected, sizeof(digest)) != 0) {
+      data->failed = 1;
+      break;
+    }
+  }
+  lonehash_sha256_destroy(sha);
+  return NULL;
+}
+
+static void test_sha256_acceleration_initialization_is_per_context(void) {
+  unsigned char input[128];
+  unsigned char expected[LONEHASH_SHA256_DIGEST_SIZE];
+  lonehash_sha256 *sha;
+  pthread_t threads[8];
+  sha256_thread_data data[8];
+  unsigned int i;
+  unsigned int started;
+
+  memset(input, 'a', sizeof(input));
+  if (lonehash_sha256_create(&sha) != LONEHASH_OK ||
+      sha->digest_buffer(sha, input, sizeof(input), expected) != LONEHASH_OK) {
+    fprintf(stderr, "sha256 threaded initialization setup failed\n");
+    lonehash_sha256_destroy(sha);
+    failures++;
+    return;
+  }
+  lonehash_sha256_destroy(sha);
+  started = 0;
+  for (i = 0; i < 8U; ++i) {
+    data[i].input = input;
+    data[i].expected = expected;
+    data[i].failed = 0;
+    if (pthread_create(&threads[i], NULL, sha256_thread_main, &data[i]) != 0) {
+      fprintf(stderr, "sha256 threaded initialization create failed\n");
+      break;
+    }
+    started++;
+  }
+  for (i = 0; i < started; ++i) {
+    if (pthread_join(threads[i], NULL) != 0 || data[i].failed) {
+      fprintf(stderr, "sha256 threaded initialization failed\n");
+      failures++;
+      return;
+    }
+  }
+  if (started != 8U) {
+    failures++;
+  }
+}
+
 int main(void) {
   test_sha256_vectors();
   test_md5_vectors();
   test_file_helpers();
   test_error_paths();
+  test_sha256_acceleration_initialization_is_per_context();
   if (getenv("LONEHASH_TEST_SKIP_LARGE") == NULL) {
     test_large_one_shot_update_matches_streaming();
   }

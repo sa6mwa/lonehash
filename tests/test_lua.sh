@@ -26,3 +26,14 @@ test "$file_sha" = "$sha"
 
 cli_sha=$(printf abc | "$build/lh.sh" -sq)
 test "$cli_sha" = "$sha"
+
+if LONEHASH_LH="$root/lua/lh.lua" "$lua_bin" -e '
+  local input = assert(io.open(".", "r"))
+  io.stdin = input
+  arg = { "-sq" }
+  dofile(assert(os.getenv("LONEHASH_LH")))
+' >"$build/lua-stdin-error.out" 2>"$build/lua-stdin-error.err"; then
+  echo 'Lua CLI accepted a stdin read error' >&2
+  exit 1
+fi
+grep 'stdin: read failed' "$build/lua-stdin-error.err" >/dev/null

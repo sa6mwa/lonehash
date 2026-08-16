@@ -30,8 +30,11 @@ end
 local function hash_stdin(alg)
   local h = alg == "md5" and lonehash.md5() or lonehash.sha256()
   while true do
-    local chunk = io.stdin:read(32768)
+    local chunk, err = io.stdin:read(32768)
     if not chunk then
+      if err then
+        error(err, 0)
+      end
       break
     end
     h:update(chunk)

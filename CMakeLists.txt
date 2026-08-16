@@ -233,9 +233,10 @@ endif()
 
 if(LONEHASH_BUILD_TESTS)
   enable_testing()
+  find_package(Threads REQUIRED)
   add_executable(lonehash_tests tests/test_lonehash.c)
   lonehash_configure_c89_target(lonehash_tests)
-  target_link_libraries(lonehash_tests PRIVATE lonehash)
+  target_link_libraries(lonehash_tests PRIVATE lonehash Threads::Threads)
   add_test(NAME lonehash.unit COMMAND lonehash_tests)
   set_tests_properties(lonehash.unit PROPERTIES LABELS "unit;local" TIMEOUT 20)
 
