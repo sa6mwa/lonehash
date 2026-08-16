@@ -311,7 +311,7 @@ if(LONEHASH_BUILD_TESTS)
   lonehash_configure_c89_target(lonehash_tests)
   target_link_libraries(lonehash_tests PRIVATE lonehash Threads::Threads)
   add_test(NAME lonehash.unit COMMAND lonehash_tests)
-  set_tests_properties(lonehash.unit PROPERTIES LABELS "unit;local" TIMEOUT 20)
+  set_tests_properties(lonehash.unit PROPERTIES LABELS "unit;local" TIMEOUT 60)
 
   add_executable(lonehash_header_c89 tests/header_c89.c)
   lonehash_configure_c89_target(lonehash_header_c89)

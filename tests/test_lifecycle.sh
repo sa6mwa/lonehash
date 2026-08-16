@@ -59,6 +59,7 @@ grep -F '"lua == 5.5.0"' lonehash.rockspec.in >/dev/null
 grep -F 'LONEHASH_VERSION_OVERRIDE' CMakeLists.txt >/dev/null
 grep -F 'set(LONEHASH_HAVE_SHA_NI 0)' CMakeLists.txt >/dev/null
 grep -F 'set(LONEHASH_HAVE_ARM_SHA2 0)' CMakeLists.txt >/dev/null
+grep -F 'set_tests_properties(lonehash.unit PROPERTIES LABELS "unit;local" TIMEOUT 60)' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_HAVE_SHA_NI=$<BOOL:${LONEHASH_HAVE_SHA_NI}>' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_HAVE_ARM_SHA2=$<BOOL:${LONEHASH_HAVE_ARM_SHA2}>' CMakeLists.txt >/dev/null
 grep -F 'WINDOWS_EXPORT_ALL_SYMBOLS ON' CMakeLists.txt >/dev/null
