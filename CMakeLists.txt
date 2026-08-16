@@ -68,6 +68,8 @@ configure_file(cmake/lonehash.pc.in
 set(LONEHASH_PUBLIC_INCLUDE_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
 set(LONEHASH_SOURCES src/lonehash.c)
+set(LONEHASH_HAVE_SHA_NI 0)
+set(LONEHASH_HAVE_ARM_SHA2 0)
 set(LONEHASH_SHA_NI_TARGET OFF)
 set(LONEHASH_ARM_SHA2_TARGET OFF)
 if(LONEHASH_TARGET_ID STREQUAL "x86_64-linux-gnu")
@@ -148,6 +150,7 @@ if(LONEHASH_BUILD_SHARED)
     lonehash_shared PROPERTIES VERSION "${PROJECT_VERSION}" SOVERSION 0
                                MACHO_COMPATIBILITY_VERSION 0.0.0
                                MACHO_CURRENT_VERSION "${PROJECT_VERSION}"
+                               WINDOWS_EXPORT_ALL_SYMBOLS ON
                                EXPORT_NAME shared)
   target_link_options(
     lonehash_shared
@@ -188,13 +191,42 @@ if(LONEHASH_BUILD_LUA)
   if(NOT TARGET lonehash_shared)
     message(FATAL_ERROR "LONEHASH_BUILD_LUA requires LONEHASH_BUILD_SHARED=ON")
   endif()
-  find_program(LUA_EXECUTABLE lua REQUIRED NO_CMAKE_FIND_ROOT_PATH)
-  find_path(LUA_INCLUDE_DIR lua.h PATHS /usr/local/include /usr/include
+  find_program(LONEHASH_LUA_EXECUTABLE NAMES lua5.5 lua-5.5 lua REQUIRED
+               NO_CMAKE_FIND_ROOT_PATH)
+  execute_process(
+    COMMAND "${LONEHASH_LUA_EXECUTABLE}" -e "io.write(_VERSION)"
+    RESULT_VARIABLE LONEHASH_LUA_VERSION_RESULT
+    OUTPUT_VARIABLE LONEHASH_LUA_INTERPRETER_VERSION
+    ERROR_VARIABLE LONEHASH_LUA_VERSION_ERROR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT LONEHASH_LUA_VERSION_RESULT EQUAL 0
+     OR NOT LONEHASH_LUA_INTERPRETER_VERSION STREQUAL "Lua 5.5")
+    message(
+      FATAL_ERROR
+        "${LONEHASH_LUA_EXECUTABLE} is not a Lua 5.5 interpreter: ${LONEHASH_LUA_VERSION_ERROR}"
+    )
+  endif()
+  find_path(LONEHASH_LUA_SOURCE_INCLUDE_DIR lua.h
+            PATHS /usr/local/include /usr/include
+            PATH_SUFFIXES lua5.5 lua-5.5
             REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+  file(STRINGS "${LONEHASH_LUA_SOURCE_INCLUDE_DIR}/lua.h"
+       LONEHASH_LUA_HEADER_MAJOR
+       REGEX "LUA_VERSION_MAJOR_N.*5")
+  file(STRINGS "${LONEHASH_LUA_SOURCE_INCLUDE_DIR}/lua.h"
+       LONEHASH_LUA_HEADER_MINOR
+       REGEX "LUA_VERSION_MINOR_N.*5")
+  if(LONEHASH_LUA_HEADER_MAJOR STREQUAL ""
+     OR LONEHASH_LUA_HEADER_MINOR STREQUAL "")
+    message(
+      FATAL_ERROR
+        "${LONEHASH_LUA_SOURCE_INCLUDE_DIR} does not provide Lua 5.5 headers for ${LONEHASH_LUA_EXECUTABLE}"
+    )
+  endif()
   set(LONEHASH_LUA_INCLUDE_DIR
       "${CMAKE_CURRENT_BINARY_DIR}/generated/host-lua-include")
-  file(COPY "${LUA_INCLUDE_DIR}/" DESTINATION "${LONEHASH_LUA_INCLUDE_DIR}"
-       FILES_MATCHING PATTERN "*.h")
+  file(COPY "${LONEHASH_LUA_SOURCE_INCLUDE_DIR}/"
+       DESTINATION "${LONEHASH_LUA_INCLUDE_DIR}" FILES_MATCHING PATTERN "*.h")
   add_library(lonehash_lua_core MODULE lua/lonehash/core.c)
   target_include_directories(lonehash_lua_core
                              PRIVATE "${LONEHASH_LUA_INCLUDE_DIR}"

@@ -22,6 +22,11 @@ grep -F 'release: clean release-pipeline' Makefile >/dev/null
 grep -F 'release-pipeline: test-all lua-source-smoke package-source-smoke release-matrix' Makefile >/dev/null
 grep -F '"lua == 5.5.0"' lonehash.rockspec.in >/dev/null
 grep -F 'LONEHASH_VERSION_OVERRIDE' CMakeLists.txt >/dev/null
+grep -F 'set(LONEHASH_HAVE_SHA_NI 0)' CMakeLists.txt >/dev/null
+grep -F 'set(LONEHASH_HAVE_ARM_SHA2 0)' CMakeLists.txt >/dev/null
+grep -F 'WINDOWS_EXPORT_ALL_SYMBOLS ON' CMakeLists.txt >/dev/null
+grep -F 'LONEHASH_LUA_EXECUTABLE' CMakeLists.txt >/dev/null
+grep -F 'LONEHASH_LUA_SOURCE_INCLUDE_DIR' CMakeLists.txt >/dev/null
 grep -F 'ctest --test-dir "$root/build/$preset" --output-on-failure' scripts/release_matrix.sh >/dev/null
 grep -F '"$STRIP" -g "$prefix/lib/liblonehash.a"' scripts/package.sh >/dev/null
 test -x scripts/stage_lua_rock_sources.sh
