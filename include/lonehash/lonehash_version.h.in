@@ -1,0 +1,13 @@
+#ifndef LONEHASH_LONEHASH_VERSION_H
+#define LONEHASH_LONEHASH_VERSION_H
+
+/** @brief Major component of the compiled library version. */
+#define LONEHASH_VERSION_MAJOR @LONEHASH_VERSION_MAJOR@
+/** @brief Minor component of the compiled library version. */
+#define LONEHASH_VERSION_MINOR @LONEHASH_VERSION_MINOR@
+/** @brief Patch component of the compiled library version. */
+#define LONEHASH_VERSION_PATCH @LONEHASH_VERSION_PATCH@
+/** @brief Compiled library version as a NUL-terminated `X.Y.Z` string. */
+#define LONEHASH_VERSION "@LONEHASH_VERSION@"
+
+#endif

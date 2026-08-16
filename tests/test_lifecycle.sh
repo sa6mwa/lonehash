@@ -5,7 +5,9 @@ root=${1:?repository root is required}
 cd "$root"
 
 documented_public_symbol() {
-  awk -v symbol="$1" '
+  local header=$1 symbol=$2 macro=${3:-0}
+
+  awk -v symbol="$symbol" -v macro="$macro" '
     /\/\*\*/ {
       comment = $0
       in_comment = ($0 !~ /\*\//)
@@ -18,7 +20,15 @@ documented_public_symbol() {
       }
       next
     }
-    index($0, symbol) {
+    {
+      if (macro != 0) {
+        symbol_pattern = "^[[:space:]]*#define[[:space:]]+" symbol "([[:space:]]|$)"
+        has_symbol = ($0 ~ symbol_pattern)
+      } else {
+        has_symbol = (index($0, symbol) != 0)
+      }
+    }
+    has_symbol {
       if (comment ~ /@brief/) {
         found = 1
       }
@@ -26,7 +36,7 @@ documented_public_symbol() {
     }
     $0 !~ /^[[:space:]]*$/ { comment = "" }
     END { exit(found ? 0 : 1) }
-  ' include/lonehash/lonehash.h.in
+  ' "$header"
 }
 
 cmake --list-presets | grep -F '"debug"' >/dev/null
@@ -63,10 +73,21 @@ grep -F 'ctest --test-dir "$root/build/$preset" --output-on-failure' scripts/rel
 grep -F '"$STRIP" -g "$prefix/lib/liblonehash.a"' scripts/package.sh >/dev/null
 test -x scripts/stage_lua_rock_sources.sh
 test -x scripts/build_lua_rock.sh
+test -f include/lonehash/lonehash.h
+test -f include/lonehash/lonehash_version.h.in
+test ! -e include/lonehash/lonehash.h.in
 
 for symbol in \
   LONEHASH_VERSION_MAJOR LONEHASH_VERSION_MINOR LONEHASH_VERSION_PATCH \
-  LONEHASH_VERSION LONEHASH_SHA256_DIGEST_SIZE LONEHASH_SHA256_BLOCK_SIZE \
+  LONEHASH_VERSION; do
+  documented_public_symbol include/lonehash/lonehash_version.h.in "$symbol" 1 || {
+    echo "public API symbol lacks a Doxygen @brief comment: $symbol" >&2
+    exit 1
+  }
+done
+
+for symbol in \
+  LONEHASH_SHA256_DIGEST_SIZE LONEHASH_SHA256_BLOCK_SIZE \
   LONEHASH_SHA256_HEX_SIZE LONEHASH_MD5_DIGEST_SIZE LONEHASH_MD5_BLOCK_SIZE \
   LONEHASH_MD5_HEX_SIZE lonehash_status LONEHASH_OK LONEHASH_ERROR_NULL \
   LONEHASH_ERROR_ALLOC LONEHASH_ERROR_IO lonehash_sha256 lonehash_md5 \
@@ -74,7 +95,7 @@ for symbol in \
   '(*digest_path)' '(*hex)' 'void *impl' lonehash_status_string \
   lonehash_sha256_create lonehash_sha256_destroy lonehash_md5_create \
   lonehash_md5_destroy; do
-  documented_public_symbol "$symbol" || {
+  documented_public_symbol include/lonehash/lonehash.h "$symbol" || {
     echo "public API symbol lacks a Doxygen @brief comment: $symbol" >&2
     exit 1
   }

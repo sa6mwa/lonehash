@@ -16,7 +16,7 @@ The public API supports:
 
 ## C API
 
-The installed [`lonehash/lonehash.h`](include/lonehash/lonehash.h.in) header is
+The installed [`lonehash/lonehash.h`](include/lonehash/lonehash.h) header is
 the complete C API and carries Doxygen-style comments for clangd hover help. It
 exposes receiver shells: create a context, call methods as
 `context->operation(context, ...)`, then destroy it. A handle has mutable

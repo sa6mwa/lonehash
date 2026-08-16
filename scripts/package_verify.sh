@@ -237,6 +237,7 @@ while read -r _hash artifact; do
       assert_single_root "$artifact" "$extract" "$root_name"
       test -f "$extract/$root_name/lonehash-$version-1.rockspec"
       test -f "$extract/$root_name/include/lonehash/lonehash.h"
+      test -f "$extract/$root_name/include/lonehash/lonehash_version.h"
       test -f "$extract/$root_name/lua/lonehash.lua"
       test -f "$extract/$root_name/lua/lonehash/core.c"
       test -f "$extract/$root_name/lua/lh.lua"
@@ -279,11 +280,12 @@ while read -r _hash artifact; do
       assert_single_root "$artifact" "$extract" "$root_name"
       prefix="$extract/$root_name"
       test -f "$prefix/include/lonehash/lonehash.h"
+      test -f "$prefix/include/lonehash/lonehash_version.h"
       test -f "$prefix/lib/pkgconfig/lonehash.pc"
       test -f "$prefix/lib/cmake/lonehash/lonehashConfig.cmake"
       test -f "$prefix/share/doc/lonehash/LICENSE"
       grep "#define LONEHASH_VERSION \"$version\"" \
-        "$prefix/include/lonehash/lonehash.h" >/dev/null
+        "$prefix/include/lonehash/lonehash_version.h" >/dev/null
       grep "Version: $version" "$prefix/lib/pkgconfig/lonehash.pc" >/dev/null
       if [ -e "$prefix/bin/lh" ]; then
         fail "library SDK unexpectedly contains lh CLI: $artifact"

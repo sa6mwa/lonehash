@@ -40,7 +40,8 @@ for file in \
   RELEASE_MANIFEST lonehash.rockspec.in \
   scripts/build_lua_rock.sh scripts/render_release_rockspec.sh \
   scripts/stage_lua_rock_sources.sh scripts/release_version.sh \
-  lua/lonehash.lua lua/lonehash/core.c include/lonehash/lonehash.h; do
+  lua/lonehash.lua lua/lonehash/core.c include/lonehash/lonehash.h \
+  include/lonehash/lonehash_version.h; do
   test -f "$stage/$file" || { echo "missing standalone Lua source: $file" >&2; exit 1; }
 done
 require_no_local_paths "$source_archive"

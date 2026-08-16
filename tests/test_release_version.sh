@@ -14,7 +14,7 @@ assert_cmake_version() {
     -DLONEHASH_TARGET_ID=x86_64-linux-gnu \
     -DLONEHASH_VERSION_OVERRIDE="${3:-}" >/dev/null
   grep -F "#define LONEHASH_VERSION \"$expected\"" \
-    "$build/generated/include/lonehash/lonehash.h" >/dev/null
+    "$build/generated/include/lonehash/lonehash_version.h" >/dev/null
 }
 
 if test "$(git rev-parse --show-toplevel 2>/dev/null || true)" != "$root"; then

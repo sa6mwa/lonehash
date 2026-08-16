@@ -25,7 +25,7 @@ cmake -S "$tmp/lonehash-$version" -B "$tmp/build" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$tmp/lonehash-$version/cmake/toolchains/lonehash-cross.cmake" \
   -DLONEHASH_TARGET_ID=x86_64-linux-gnu
 grep "#define LONEHASH_VERSION \"$version\"" \
-  "$tmp/build/generated/include/lonehash/lonehash.h" >/dev/null
+  "$tmp/build/generated/include/lonehash/lonehash_version.h" >/dev/null
 grep "Version: $version" "$tmp/build/lonehash.pc" >/dev/null
 cmake --build "$tmp/build"
 ctest --test-dir "$tmp/build" --output-on-failure

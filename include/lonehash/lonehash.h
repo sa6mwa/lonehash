@@ -4,18 +4,11 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include <lonehash/lonehash_version.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/** @brief Major component of the compiled library version. */
-#define LONEHASH_VERSION_MAJOR @LONEHASH_VERSION_MAJOR@
-/** @brief Minor component of the compiled library version. */
-#define LONEHASH_VERSION_MINOR @LONEHASH_VERSION_MINOR@
-/** @brief Patch component of the compiled library version. */
-#define LONEHASH_VERSION_PATCH @LONEHASH_VERSION_PATCH@
-/** @brief Compiled library version as a NUL-terminated `X.Y.Z` string. */
-#define LONEHASH_VERSION "@LONEHASH_VERSION@"
 
 /** @brief Number of bytes in a SHA-256 digest. */
 #define LONEHASH_SHA256_DIGEST_SIZE 32

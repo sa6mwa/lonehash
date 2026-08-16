@@ -59,14 +59,16 @@ set(LONEHASH_VERSION "${PROJECT_VERSION}")
 set(LONEHASH_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(LONEHASH_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(LONEHASH_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
-configure_file(include/lonehash/lonehash.h.in
-               "${CMAKE_CURRENT_BINARY_DIR}/generated/include/lonehash/lonehash.h"
+set(LONEHASH_GENERATED_INCLUDE_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
+set(LONEHASH_SOURCE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
+file(REMOVE "${LONEHASH_GENERATED_INCLUDE_DIR}/lonehash/lonehash.h")
+configure_file(include/lonehash/lonehash_version.h.in
+               "${LONEHASH_GENERATED_INCLUDE_DIR}/lonehash/lonehash_version.h"
                @ONLY)
 configure_file(cmake/lonehash.pc.in
                "${CMAKE_CURRENT_BINARY_DIR}/lonehash.pc" @ONLY)
 
-set(LONEHASH_PUBLIC_INCLUDE_DIR
-    "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
 set(LONEHASH_SOURCES src/lonehash.c)
 set(LONEHASH_HAVE_SHA_NI 0)
 set(LONEHASH_HAVE_ARM_SHA2 0)
@@ -118,7 +120,8 @@ endfunction()
 function(lonehash_target_defaults target)
   target_include_directories(
     ${target}
-    PUBLIC $<BUILD_INTERFACE:${LONEHASH_PUBLIC_INCLUDE_DIR}>
+    PUBLIC $<BUILD_INTERFACE:${LONEHASH_GENERATED_INCLUDE_DIR}>
+           $<BUILD_INTERFACE:${LONEHASH_SOURCE_INCLUDE_DIR}>
            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
   target_compile_definitions(
     ${target} PRIVATE LONEHASH_HAVE_SHA_NI=$<BOOL:${LONEHASH_HAVE_SHA_NI}>
@@ -186,7 +189,8 @@ endif()
 if(LONEHASH_BUILD_CLI)
   add_executable(lh src/lh.c)
   lonehash_configure_c89_target(lh)
-  target_include_directories(lh PRIVATE "${LONEHASH_PUBLIC_INCLUDE_DIR}")
+  target_include_directories(lh PRIVATE "${LONEHASH_GENERATED_INCLUDE_DIR}"
+                                         "${LONEHASH_SOURCE_INCLUDE_DIR}")
   if(TARGET lonehash_static)
     if(LONEHASH_CLI_STATIC AND MSVC)
       add_library(lonehash_cli_static STATIC ${LONEHASH_SOURCES})
@@ -254,7 +258,8 @@ if(LONEHASH_BUILD_LUA)
   add_library(lonehash_lua_core MODULE lua/lonehash/core.c)
   target_include_directories(lonehash_lua_core
                              PRIVATE "${LONEHASH_LUA_INCLUDE_DIR}"
-                                     "${LONEHASH_PUBLIC_INCLUDE_DIR}")
+                                     "${LONEHASH_GENERATED_INCLUDE_DIR}"
+                                     "${LONEHASH_SOURCE_INCLUDE_DIR}")
   target_link_libraries(lonehash_lua_core PRIVATE lonehash_shared)
   set_target_properties(lonehash_lua_core PROPERTIES C_STANDARD 99
                                                      C_STANDARD_REQUIRED ON)
@@ -378,7 +383,8 @@ if(LONEHASH_BUILD_TESTS)
 endif()
 
 if(LONEHASH_INSTALL)
-  install(FILES "${LONEHASH_PUBLIC_INCLUDE_DIR}/lonehash/lonehash.h"
+  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/lonehash/lonehash.h"
+                "${LONEHASH_GENERATED_INCLUDE_DIR}/lonehash/lonehash_version.h"
           DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/lonehash")
   set(export_targets)
   if(TARGET lonehash_static)

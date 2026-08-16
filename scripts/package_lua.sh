@@ -30,6 +30,7 @@ cp "$root/scripts/build_lua_rock.sh" "$stage/scripts/build_lua_rock.sh"
 cp "$root/scripts/render_release_rockspec.sh" "$stage/scripts/render_release_rockspec.sh"
 cp "$root/scripts/stage_lua_rock_sources.sh" "$stage/scripts/stage_lua_rock_sources.sh"
 cp "$root/scripts/release_version.sh" "$stage/scripts/release_version.sh"
+cp "$root/include/lonehash/lonehash.h" "$stage/include/lonehash/lonehash.h"
 printf '%s\n' "$version" >"$stage/VERSION"
 
 sed \
@@ -37,7 +38,8 @@ sed \
   -e "s/@LONEHASH_VERSION_MINOR@/$minor/g" \
   -e "s/@LONEHASH_VERSION_PATCH@/$patch/g" \
   -e "s/@LONEHASH_VERSION@/$version/g" \
-  "$root/include/lonehash/lonehash.h.in" >"$stage/include/lonehash/lonehash.h"
+  "$root/include/lonehash/lonehash_version.h.in" \
+  >"$stage/include/lonehash/lonehash_version.h"
 
 "$root/scripts/render_release_rockspec.sh" "$stage/lonehash-$version-1.rockspec"
 cp "$stage/lonehash-$version-1.rockspec" "$rockspec"

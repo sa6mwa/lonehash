@@ -17,6 +17,7 @@ for file in \
   lonehash.rockspec.in \
   "lonehash-$version-1.rockspec" \
   include/lonehash/lonehash.h \
+  include/lonehash/lonehash_version.h \
   lua/lonehash.lua \
   lua/lh.lua \
   lua/lonehash/core.c \
@@ -40,6 +41,7 @@ RELEASE_MANIFEST
 lonehash.rockspec.in
 lonehash-$version-1.rockspec
 include/lonehash/lonehash.h
+include/lonehash/lonehash_version.h
 lua/lonehash.lua
 lua/lh.lua
 lua/lonehash/core.c
