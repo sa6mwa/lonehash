@@ -27,6 +27,9 @@ grep -F 'set(LONEHASH_HAVE_ARM_SHA2 0)' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_HAVE_SHA_NI=$<BOOL:${LONEHASH_HAVE_SHA_NI}>' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_HAVE_ARM_SHA2=$<BOOL:${LONEHASH_HAVE_ARM_SHA2}>' CMakeLists.txt >/dev/null
 grep -F 'WINDOWS_EXPORT_ALL_SYMBOLS ON' CMakeLists.txt >/dev/null
+grep -F '_CRT_SECURE_NO_WARNINGS' CMakeLists.txt >/dev/null
+grep -F 'ARCHIVE_OUTPUT_NAME' CMakeLists.txt >/dev/null
+grep -F 'lonehash_cli_static' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_LUA_EXECUTABLE' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_LUA_SOURCE_INCLUDE_DIR' CMakeLists.txt >/dev/null
 grep -F 'MSVC_RUNTIME_LIBRARY' CMakeLists.txt >/dev/null

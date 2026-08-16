@@ -99,6 +99,7 @@ endif()
 
 function(lonehash_configure_c89_target target)
   if(MSVC)
+    target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
     target_compile_options(${target} PRIVATE /W4 /WX)
   elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     target_compile_options(${target} PRIVATE -std=c89 -Wall -Wextra -Wpedantic
@@ -141,6 +142,10 @@ if(LONEHASH_BUILD_STATIC)
   add_library(lonehash::static ALIAS lonehash_static)
   lonehash_target_defaults(lonehash_static)
   set_target_properties(lonehash_static PROPERTIES EXPORT_NAME static)
+  if(WIN32)
+    set_target_properties(lonehash_static PROPERTIES ARCHIVE_OUTPUT_NAME
+                                                     lonehash_static)
+  endif()
 endif()
 
 if(LONEHASH_BUILD_SHARED)
@@ -153,6 +158,10 @@ if(LONEHASH_BUILD_SHARED)
                                MACHO_CURRENT_VERSION "${PROJECT_VERSION}"
                                WINDOWS_EXPORT_ALL_SYMBOLS ON
                                EXPORT_NAME shared)
+  if(WIN32)
+    set_target_properties(lonehash_shared PROPERTIES ARCHIVE_OUTPUT_NAME
+                                                     lonehash_shared)
+  endif()
   target_link_options(
     lonehash_shared
     PRIVATE "$<$<PLATFORM_ID:Darwin>:-Wl,-install_name,@rpath/liblonehash.0.dylib>"
@@ -179,15 +188,24 @@ if(LONEHASH_BUILD_CLI)
   lonehash_configure_c89_target(lh)
   target_include_directories(lh PRIVATE "${LONEHASH_PUBLIC_INCLUDE_DIR}")
   if(TARGET lonehash_static)
-    target_link_libraries(lh PRIVATE lonehash_static)
+    if(LONEHASH_CLI_STATIC AND MSVC)
+      add_library(lonehash_cli_static STATIC ${LONEHASH_SOURCES})
+      lonehash_target_defaults(lonehash_cli_static)
+      set_target_properties(lonehash_cli_static PROPERTIES OUTPUT_NAME
+                                                          lonehash_cli_static
+                                                          MSVC_RUNTIME_LIBRARY
+                                                          "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+      set_property(TARGET lh PROPERTY MSVC_RUNTIME_LIBRARY
+                                      "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+      target_link_libraries(lh PRIVATE lonehash_cli_static)
+    else()
+      target_link_libraries(lh PRIVATE lonehash_static)
+    endif()
   else()
     target_link_libraries(lh PRIVATE lonehash)
   endif()
   if(LONEHASH_CLI_STATIC AND TARGET lonehash_static)
-    if(MSVC)
-      set_property(TARGET lonehash_static lh PROPERTY MSVC_RUNTIME_LIBRARY
-                                                   "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE)
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE)
       target_link_options(lh PRIVATE -static)
     endif()
   endif()
