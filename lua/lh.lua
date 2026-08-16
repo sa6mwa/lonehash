@@ -52,15 +52,20 @@ local function hash_file(alg, path)
   return lonehash.sha256_file_hex(path)
 end
 
+local function write_stdout(...)
+  local ok, err = io.stdout:write(...)
+  if not ok then
+    return nil, err
+  end
+  return io.stdout:flush()
+end
+
 local function print_sum(hex, name, nul)
-  io.stdout:write(hex, "  ", name, nul and "\0" or "\n")
+  return write_stdout(hex, "  ", name, nul and "\0" or "\n")
 end
 
 local function print_quiet(hex, nul)
-  io.stdout:write(hex)
-  if not nul then
-    io.stdout:write("\n")
-  end
+  return write_stdout(hex, nul and "" or "\n")
 end
 
 local argv = arg or {}
@@ -101,9 +106,13 @@ if first_file > #argv then
     os.exit(1)
   end
   if opts.quiet then
-    print_quiet(hex, opts.nul)
+    ok = print_quiet(hex, opts.nul)
   else
-    print_sum(hex, "-", opts.nul)
+    ok = print_sum(hex, "-", opts.nul)
+  end
+  if not ok then
+    io.stderr:write(("%s: stdout: write failed\n"):format(prog))
+    os.exit(1)
   end
   os.exit(0)
 end
@@ -121,9 +130,15 @@ for j = first_file, #argv do
     io.stderr:write(("%s: %s: read failed\n"):format(prog, path))
     failed = true
   elseif opts.quiet then
-    print_quiet(hex, opts.nul)
+    if not print_quiet(hex, opts.nul) then
+      io.stderr:write(("%s: stdout: write failed\n"):format(prog))
+      os.exit(1)
+    end
   else
-    print_sum(hex, path == "-" and "-" or path, opts.nul)
+    if not print_sum(hex, path == "-" and "-" or path, opts.nul) then
+      io.stderr:write(("%s: stdout: write failed\n"):format(prog))
+      os.exit(1)
+    end
   end
 end
 

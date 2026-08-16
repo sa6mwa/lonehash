@@ -27,6 +27,12 @@ test "$file_sha" = "$sha"
 cli_sha=$(printf abc | "$build/lh.sh" -sq)
 test "$cli_sha" = "$sha"
 
+if printf abc | "$build/lh.sh" -sq >/dev/full 2>"$build/lua-stdout-error.err"; then
+  echo 'Lua CLI accepted a stdout write failure' >&2
+  exit 1
+fi
+grep 'stdout: write failed' "$build/lua-stdout-error.err" >/dev/null
+
 if LONEHASH_LH="$root/lua/lh.lua" "$lua_bin" -e '
   local input = assert(io.open(".", "r"))
   io.stdin = input
