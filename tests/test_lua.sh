@@ -27,6 +27,12 @@ test "$file_sha" = "$sha"
 cli_sha=$(printf abc | "$build/lh.sh" -sq)
 test "$cli_sha" = "$sha"
 
+printf abc | "$build/lh.sh" -sqz >"$build/lua-quiet-nul.out"
+quiet_nul_bytes=$(wc -c <"$build/lua-quiet-nul.out" | tr -d ' ')
+test "$quiet_nul_bytes" = "65"
+quiet_nul_tail=$(od -An -tx1 -N1 -j64 "$build/lua-quiet-nul.out" | tr -d ' \n')
+test "$quiet_nul_tail" = "00"
+
 if printf abc | "$build/lh.sh" -sq >/dev/full 2>"$build/lua-stdout-error.err"; then
   echo 'Lua CLI accepted a stdout write failure' >&2
   exit 1

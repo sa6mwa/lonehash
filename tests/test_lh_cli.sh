@@ -34,16 +34,16 @@ test "$cluster_sha" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f
 
 printf abc | "$lh" -szq >"$tmp/quiet-raw.out"
 quiet_raw_bytes=$(wc -c <"$tmp/quiet-raw.out" | tr -d ' ')
-test "$quiet_raw_bytes" = "64"
-quiet_raw=$(cat "$tmp/quiet-raw.out")
-test "$quiet_raw" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+test "$quiet_raw_bytes" = "65"
+quiet_raw_tail=$(od -An -tx1 -N1 -j64 "$tmp/quiet-raw.out" | tr -d ' \n')
+test "$quiet_raw_tail" = "00"
 
 for opts in -szq -zqs -qsz; do
   printf abc | "$lh" "$opts" >"$tmp/quiet-cluster.out"
   quiet_cluster_bytes=$(wc -c <"$tmp/quiet-cluster.out" | tr -d ' ')
-  test "$quiet_cluster_bytes" = "64"
-  quiet_cluster=$(cat "$tmp/quiet-cluster.out")
-  test "$quiet_cluster" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+  test "$quiet_cluster_bytes" = "65"
+  quiet_cluster_tail=$(od -An -tx1 -N1 -j64 "$tmp/quiet-cluster.out" | tr -d ' \n')
+  test "$quiet_cluster_tail" = "00"
 done
 
 quiet_file=$("$lh" --md5 --quiet "$tmp/abc.txt")

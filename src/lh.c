@@ -120,7 +120,7 @@ static int lh_print_sum(const char *hex, const char *name, int nul) {
 }
 
 static int lh_print_quiet_sum(const char *hex, int nul) {
-  if (fputs(hex, stdout) == EOF || (!nul && fputc('\n', stdout) == EOF)) {
+  if (fputs(hex, stdout) == EOF || fputc(nul ? '\0' : '\n', stdout) == EOF) {
     return 1;
   }
   return fflush(stdout) == EOF ? 1 : 0;

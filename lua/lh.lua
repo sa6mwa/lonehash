@@ -65,7 +65,7 @@ local function print_sum(hex, name, nul)
 end
 
 local function print_quiet(hex, nul)
-  return write_stdout(hex, nul and "" or "\n")
+  return write_stdout(hex, nul and "\0" or "\n")
 end
 
 local argv = arg or {}
