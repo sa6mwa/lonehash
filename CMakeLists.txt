@@ -88,13 +88,15 @@ elseif(LONEHASH_TARGET_ID MATCHES "^(aarch64|arm64)-")
 endif()
 if(LONEHASH_ENABLE_SHA_NI
    AND LONEHASH_SHA_NI_TARGET
-   AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+   AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang"
+   AND NOT MSVC)
   list(APPEND LONEHASH_SOURCES src/lonehash_sha256_ni.c)
   set(LONEHASH_HAVE_SHA_NI ON)
 endif()
 if(LONEHASH_ENABLE_ARM_SHA2
    AND LONEHASH_ARM_SHA2_TARGET
-   AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+   AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang"
+   AND NOT MSVC)
   list(APPEND LONEHASH_SOURCES src/lonehash_sha256_armv8.c)
   set(LONEHASH_HAVE_ARM_SHA2 ON)
 endif()
@@ -110,6 +112,7 @@ function(lonehash_configure_c89_target target)
   get_property(lonehash_target_type TARGET ${target} PROPERTY TYPE)
   if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang"
      AND NOT APPLE
+     AND NOT MSVC
      AND (lonehash_target_type STREQUAL "EXECUTABLE"
           OR lonehash_target_type STREQUAL "SHARED_LIBRARY"
           OR lonehash_target_type STREQUAL "MODULE_LIBRARY"))
@@ -208,7 +211,7 @@ if(LONEHASH_BUILD_CLI)
     target_link_libraries(lh PRIVATE lonehash)
   endif()
   if(LONEHASH_CLI_STATIC AND TARGET lonehash_static)
-    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE)
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE AND NOT MSVC)
       target_link_options(lh PRIVATE -static)
     endif()
   endif()
@@ -282,7 +285,7 @@ if(LONEHASH_BUILD_LUA)
                                                      -Werror)
   endif()
   get_property(lonehash_lua_type TARGET lonehash_lua_core PROPERTY TYPE)
-  if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang" AND NOT APPLE
+  if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang" AND NOT APPLE AND NOT MSVC
      AND lonehash_lua_type STREQUAL "MODULE_LIBRARY")
     target_link_options(lonehash_lua_core PRIVATE -Wl,--fatal-warnings)
   endif()
