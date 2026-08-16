@@ -224,19 +224,6 @@ scan_path "$(basename "$manifest")" "$manifest" "$root" "repository path"
 scan_path "$(basename "$manifest")" "$manifest" "${HOME:-}" "HOME path"
 verify_custom_install_dirs
 
-find "$dist" -maxdepth 1 -type f -printf '%f\n' | sort | while IFS= read -r file; do
-  case "$file" in
-    lonehash-"$version"-CHECKSUMS) continue ;;
-    lonehash-"$version"*.tar.gz|lonehash-lua-"$version".tar.gz|lonehash-"$version"-1.rockspec|lonehash-"$version"-1.src.rock|lh-"$version"*.tar.gz)
-      grep "  $file\$" "$manifest" >/dev/null ||
-        fail "release artifact is not listed in checksum manifest: $file"
-      ;;
-    lonehash-*.tar.gz|lonehash-lua-*.tar.gz|lonehash-*-1.rockspec|lonehash-*-1.src.rock|lh-*.tar.gz)
-      fail "stale release artifact for different version: $file"
-      ;;
-  esac
-done
-
 while read -r _hash artifact; do
   case "$artifact" in
     ""|*/*|.*|*..*) fail "unsafe checksum manifest artifact name: $artifact" ;;

@@ -4,6 +4,12 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 toolchains="$root/scripts/cpkt-toolchains.sh"
 targets=$("$toolchains" targets)
+version=$("$root/scripts/release_version.sh")
+assets="$root/.cache/release-matrix-assets"
+
+rm -f "$assets"
+mkdir -p "$(dirname "$assets")"
+: >"$assets"
 
 for target in $targets; do
   preset="$target-release"
@@ -27,9 +33,13 @@ for target in $targets; do
   fi
   "$root/scripts/package.sh" "$target" "$preset"
   "$root/scripts/package_cli.sh" "$target" "$preset"
+  printf '%s\n' "lonehash-$version-$target.tar.gz" "lh-$version-$target.tar.gz" >>"$assets"
 done
 
 "$root/scripts/package_source.sh"
+printf '%s\n' "lonehash-$version.tar.gz" >>"$assets"
 "$root/scripts/package_lua.sh"
-"$root/scripts/package_checksums.sh"
+printf '%s\n' "lonehash-lua-$version.tar.gz" "lonehash-$version-1.rockspec" \
+  "lonehash-$version-1.src.rock" >>"$assets"
+LONEHASH_RELEASE_ASSETS_FILE="$assets" "$root/scripts/package_checksums.sh"
 "$root/scripts/package_verify.sh"

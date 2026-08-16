@@ -309,6 +309,11 @@ if(LONEHASH_BUILD_TESTS)
                    "${CMAKE_CURRENT_SOURCE_DIR}")
   set_tests_properties(lonehash.toolchain-env-escaping PROPERTIES LABELS "local;lifecycle"
                                                                  TIMEOUT 20)
+  add_test(NAME lonehash.package-checksums-assets
+           COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_package_checksums_assets.sh"
+                   "${CMAKE_CURRENT_SOURCE_DIR}")
+  set_tests_properties(lonehash.package-checksums-assets PROPERTIES LABELS "local;lifecycle"
+                                                                   TIMEOUT 20)
 endif()
 
 if(LONEHASH_INSTALL)
