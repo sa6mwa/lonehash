@@ -1,4 +1,4 @@
-.PHONY: help deps-debug deps-release deps-cross configure build build-debug build-release test test-debug test-all valgrind lua-rock lua-env lua-test lua-artifacts release-lua-artifacts asan \
+.PHONY: help deps-debug deps-release deps-cross configure build build-debug build-release test test-debug test-all valgrind lua-rock lua-env lua-test lua-artifacts release-lua-artifacts lua-source-smoke asan \
 	bench benchmarks bench-gate package package-cli package-source package-source-smoke \
 	package-checksums package-verify verify-release-archives verify-release-privacy \
 	release-matrix release-pipeline finalize-slice prerelease prerelease-hardening release print-release-upload-assets \
@@ -16,6 +16,7 @@ help:
 	  'lua-env                Print environment for the locally installed Lua rock' \
 	  'lua-test               Run Lua facade smoke tests against the local installed rock' \
 	  'release-lua-artifacts  Build Lua source tarball, rockspec, and source rock' \
+	  'lua-source-smoke       Build/test the standalone Lua source tarball against the local SDK' \
 	  'asan                   Build and run ASan/UBSan preset' \
 	  'bench                  Run release-build local benchmarks' \
 	  'package                Build native Linux library SDK and lh CLI tarballs' \
@@ -77,6 +78,9 @@ lua-test: lua-rock
 lua-artifacts release-lua-artifacts:
 	scripts/package_lua.sh
 
+lua-source-smoke: lua-rock release-lua-artifacts
+	LONEHASH_PREFIX="$$(pwd)/build/lua-sdk" scripts/validate_luarocks.sh "$$(pwd)/dist" "$$(scripts/release_version.sh)"
+
 test-all: test asan valgrind
 
 asan:
@@ -114,7 +118,7 @@ release-matrix:
 
 finalize-slice: format test
 
-release-pipeline: test-all lua-rock lua-test package-source-smoke release-matrix
+release-pipeline: test-all lua-source-smoke package-source-smoke release-matrix
 
 prerelease: release-pipeline
 

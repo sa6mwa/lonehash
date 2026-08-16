@@ -16,7 +16,7 @@ source_rock="lonehash-$version-1.src.rock"
 
 rm -rf "$stage_root" "$rock_stage"
 mkdir -p "$stage/lua/lonehash" "$stage/lua/examples" \
-  "$stage/include/lonehash" "$dist" "$rock_stage"
+  "$stage/include/lonehash" "$stage/scripts" "$dist" "$rock_stage"
 
 cp "$root/LICENSE" "$stage/LICENSE"
 cp "$root/README.md" "$stage/README.md"
@@ -25,6 +25,11 @@ cp "$root/lua/lh.lua" "$stage/lua/lh.lua"
 cp "$root/lua/lonehash/core.c" "$stage/lua/lonehash/core.c"
 cp "$root/lua/examples/hash_strings.lua" "$stage/lua/examples/hash_strings.lua"
 cp "$root/lua/examples/hash_file.lua" "$stage/lua/examples/hash_file.lua"
+cp "$root/lonehash.rockspec.in" "$stage/lonehash.rockspec.in"
+cp "$root/scripts/build_lua_rock.sh" "$stage/scripts/build_lua_rock.sh"
+cp "$root/scripts/render_release_rockspec.sh" "$stage/scripts/render_release_rockspec.sh"
+cp "$root/scripts/stage_lua_rock_sources.sh" "$stage/scripts/stage_lua_rock_sources.sh"
+cp "$root/scripts/release_version.sh" "$stage/scripts/release_version.sh"
 printf '%s\n' "$version" >"$stage/VERSION"
 
 sed \

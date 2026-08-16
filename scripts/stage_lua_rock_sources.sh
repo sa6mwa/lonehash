@@ -14,13 +14,18 @@ for file in \
   LICENSE \
   README.md \
   VERSION \
+  lonehash.rockspec.in \
   "lonehash-$version-1.rockspec" \
   include/lonehash/lonehash.h \
   lua/lonehash.lua \
   lua/lh.lua \
   lua/lonehash/core.c \
   lua/examples/hash_strings.lua \
-  lua/examples/hash_file.lua; do
+  lua/examples/hash_file.lua \
+  scripts/build_lua_rock.sh \
+  scripts/render_release_rockspec.sh \
+  scripts/stage_lua_rock_sources.sh \
+  scripts/release_version.sh; do
   if [ ! -f "$stage/$file" ]; then
     echo "missing Lua release source: $stage/$file" >&2
     exit 1
@@ -32,6 +37,7 @@ LICENSE
 README.md
 VERSION
 RELEASE_MANIFEST
+lonehash.rockspec.in
 lonehash-$version-1.rockspec
 include/lonehash/lonehash.h
 lua/lonehash.lua
@@ -39,4 +45,8 @@ lua/lh.lua
 lua/lonehash/core.c
 lua/examples/hash_strings.lua
 lua/examples/hash_file.lua
+scripts/build_lua_rock.sh
+scripts/render_release_rockspec.sh
+scripts/stage_lua_rock_sources.sh
+scripts/release_version.sh
 EOF

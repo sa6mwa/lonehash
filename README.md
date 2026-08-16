@@ -62,6 +62,10 @@ make release-lua-artifacts
 
 `make lua-env` prints the environment needed to run the installed local rock
 directly. The facade requires Lua 5.5.0, matching the release rockspec.
+The release includes a standalone `lonehash-lua-<version>.tar.gz` containing
+the Lua facade, public header, rockspec template, and Lua build/staging scripts;
+it builds against an installed `liblonehash` SDK discovered with `pkg-config`
+or `LONEHASH_PREFIX`.
 
 ## Release gates
 
