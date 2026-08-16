@@ -5,8 +5,7 @@ typedef unsigned int lh_u32;
 
 static int lh_sha256_ni_features_available(unsigned int leaf1_ecx,
                                            unsigned int leaf7_ebx) {
-  return (leaf1_ecx & (1U << 9)) != 0U &&
-         (leaf1_ecx & (1U << 19)) != 0U &&
+  return (leaf1_ecx & (1U << 9)) != 0U && (leaf1_ecx & (1U << 19)) != 0U &&
          (leaf7_ebx & (1U << 29)) != 0U;
 }
 

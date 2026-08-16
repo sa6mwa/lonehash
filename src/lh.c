@@ -195,8 +195,8 @@ int main(int argc, char **argv) {
         return 1;
       }
     } else {
-      if (lh_print_sum(hex, strcmp(argv[i], "-") == 0 ? "-" : argv[i],
-                       nul) != 0) {
+      if (lh_print_sum(hex, strcmp(argv[i], "-") == 0 ? "-" : argv[i], nul) !=
+          0) {
         fprintf(stderr, "%s: stdout: write failed\n", prog);
         return 1;
       }
