@@ -22,6 +22,9 @@ for target in $targets; do
   eval "$("$toolchains" env "$target")"
   cmake --preset "$preset"
   cmake --build --preset "$preset"
+  if [ "$target" = "x86_64-linux-gnu" ]; then
+    ctest --test-dir "$root/build/$preset" --output-on-failure
+  fi
   "$root/scripts/package.sh" "$target" "$preset"
   "$root/scripts/package_cli.sh" "$target" "$preset"
 done

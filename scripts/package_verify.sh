@@ -238,6 +238,9 @@ find "$dist" -maxdepth 1 -type f -printf '%f\n' | sort | while IFS= read -r file
 done
 
 while read -r _hash artifact; do
+  case "$artifact" in
+    ""|*/*|.*|*..*) fail "unsafe checksum manifest artifact name: $artifact" ;;
+  esac
   extract="$tmp/extract-${artifact}"
   mkdir -p "$extract"
   case "$artifact" in

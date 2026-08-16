@@ -14,6 +14,7 @@
         "LONEHASH_BUILD_TESTS": "ON",
         "LONEHASH_BUILD_BENCHMARKS": "ON",
         "LONEHASH_BUILD_CLI": "ON",
+        "LONEHASH_DIST_DIR": "${sourceDir}/dist",
         "LONEHASH_TARGET_ID": "x86_64-linux-gnu",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
       }

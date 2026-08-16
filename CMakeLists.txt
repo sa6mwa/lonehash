@@ -1,11 +1,24 @@
 cmake_minimum_required(VERSION 3.20)
 
+set(LONEHASH_VERSION_OVERRIDE
+    ""
+    CACHE STRING "Explicit semver version for a local release-candidate build")
+set(_lonehash_version_command "${CMAKE_CURRENT_SOURCE_DIR}/scripts/release_version.sh")
+if(NOT LONEHASH_VERSION_OVERRIDE STREQUAL "")
+  set(_lonehash_version_command "${CMAKE_COMMAND}" "-E" "env"
+                                "LONEHASH_VERSION_OVERRIDE=${LONEHASH_VERSION_OVERRIDE}"
+                                "${CMAKE_CURRENT_SOURCE_DIR}/scripts/release_version.sh")
+endif()
 execute_process(
-  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/scripts/release_version.sh"
+  COMMAND ${_lonehash_version_command}
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  RESULT_VARIABLE LONEHASH_VERSION_RESULT
   OUTPUT_VARIABLE LONEHASH_VERSION_RAW
   OUTPUT_STRIP_TRAILING_WHITESPACE
-  ERROR_QUIET)
+  ERROR_VARIABLE LONEHASH_VERSION_ERROR)
+if(NOT LONEHASH_VERSION_RESULT EQUAL 0)
+  message(FATAL_ERROR "Unable to resolve lonehash version: ${LONEHASH_VERSION_ERROR}")
+endif()
 if(NOT LONEHASH_VERSION_RAW MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
   set(LONEHASH_VERSION_RAW "0.0.0")
 endif()
@@ -89,6 +102,14 @@ function(lonehash_configure_c89_target target)
     target_compile_options(${target} PRIVATE -std=c89 -Wall -Wextra -Wpedantic
                                              -pedantic-errors -Werror)
   endif()
+  get_property(lonehash_target_type TARGET ${target} PROPERTY TYPE)
+  if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang"
+     AND NOT APPLE
+     AND (lonehash_target_type STREQUAL "EXECUTABLE"
+          OR lonehash_target_type STREQUAL "SHARED_LIBRARY"
+          OR lonehash_target_type STREQUAL "MODULE_LIBRARY"))
+    target_link_options(${target} PRIVATE -Wl,--fatal-warnings)
+  endif()
 endfunction()
 
 function(lonehash_target_defaults target)
@@ -142,8 +163,10 @@ endif()
 
 if(LONEHASH_BUILD_EXAMPLES)
   add_executable(lonehash_example examples/hash_strings.c)
+  lonehash_configure_c89_target(lonehash_example)
   target_link_libraries(lonehash_example PRIVATE lonehash)
   add_executable(lonehash_file_example examples/hash_file.c)
+  lonehash_configure_c89_target(lonehash_file_example)
   target_link_libraries(lonehash_file_example PRIVATE lonehash)
 endif()
 
@@ -184,6 +207,11 @@ if(LONEHASH_BUILD_LUA)
   else()
     target_compile_options(lonehash_lua_core PRIVATE -Wall -Wextra -Wpedantic
                                                      -Werror)
+  endif()
+  get_property(lonehash_lua_type TARGET lonehash_lua_core PROPERTY TYPE)
+  if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang" AND NOT APPLE
+     AND lonehash_lua_type STREQUAL "MODULE_LIBRARY")
+    target_link_options(lonehash_lua_core PRIVATE -Wl,--fatal-warnings)
   endif()
   set_target_properties(
     lonehash_lua_core
