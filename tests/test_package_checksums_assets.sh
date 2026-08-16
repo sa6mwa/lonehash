@@ -21,3 +21,11 @@ if grep -F 'lonehash-0.0.0-arm64-apple-darwin.tar.gz' \
   echo 'checksum manifest included a stale matrix artifact' >&2
   exit 1
 fi
+
+relative="$tmp/relative"
+mkdir -p "$relative/out"
+printf current >"$relative/out/lonehash-0.0.0-x86_64-linux-gnu.tar.gz"
+printf 'lonehash-0.0.0-x86_64-linux-gnu.tar.gz\n' >"$relative/assets"
+(cd "$relative" && LONEHASH_DIST_DIR=out LONEHASH_RELEASE_ASSETS_FILE="$relative/assets" \
+  "$root/scripts/package_checksums.sh")
+test -f "$relative/out/lonehash-0.0.0-CHECKSUMS"

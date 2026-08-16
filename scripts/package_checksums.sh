@@ -4,6 +4,8 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 version=$("$root/scripts/release_version.sh")
 dist="${LONEHASH_DIST_DIR:-$root/dist}"
+mkdir -p "$dist"
+dist=$(CDPATH= cd -- "$dist" && pwd)
 manifest="$dist/lonehash-$version-CHECKSUMS"
 
 cd "$dist"
