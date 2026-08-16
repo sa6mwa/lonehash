@@ -53,6 +53,12 @@ static void test_sha256_vectors(void) {
   expect_string("sha256 abc hex", hex,
                 "ba7816bf8f01cfea414140de5dae2223"
                 "b00361a396177a9cb410ff61f20015ad");
+  expect_status("sha256 reuse update", sha->update(sha, abc, 3), LONEHASH_OK);
+  expect_status("sha256 reuse final", sha->final(sha, digest), LONEHASH_OK);
+  sha->hex(sha, digest, hex);
+  expect_string("sha256 reuse hex", hex,
+                "ba7816bf8f01cfea414140de5dae2223"
+                "b00361a396177a9cb410ff61f20015ad");
   lonehash_sha256_destroy(sha);
 }
 
@@ -76,6 +82,10 @@ static void test_md5_vectors(void) {
   expect_status("md5 final", md5->final(md5, digest), LONEHASH_OK);
   md5->hex(md5, digest, hex);
   expect_string("md5 abc hex", hex, "900150983cd24fb0d6963f7d28e17f72");
+  expect_status("md5 reuse update", md5->update(md5, abc, 3), LONEHASH_OK);
+  expect_status("md5 reuse final", md5->final(md5, digest), LONEHASH_OK);
+  md5->hex(md5, digest, hex);
+  expect_string("md5 reuse hex", hex, "900150983cd24fb0d6963f7d28e17f72");
   lonehash_md5_destroy(md5);
 }
 

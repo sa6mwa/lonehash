@@ -382,7 +382,7 @@ static lonehash_status lh_sha256_final(lonehash_sha256 *self,
   memset(ctx, 0, sizeof(*ctx));
   ctx->use_sha_ni = use_sha_ni;
   ctx->use_arm_sha2 = use_arm_sha2;
-  return LONEHASH_OK;
+  return lh_sha256_reset(self);
 }
 
 static const lh_u32 lh_md5_s[64] = {
@@ -560,7 +560,7 @@ static lonehash_status lh_md5_final(lonehash_md5 *self,
     lh_store_le32(digest + (i * 4U), ctx->state[i]);
   }
   memset(ctx, 0, sizeof(*ctx));
-  return LONEHASH_OK;
+  return lh_md5_reset(self);
 }
 
 static void lh_hex(const unsigned char *digest, size_t len, char *hex) {
