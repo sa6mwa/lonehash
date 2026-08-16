@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
+
 typedef enum lh_algorithm { LH_ALG_MD5 = 1, LH_ALG_SHA256 = 2 } lh_algorithm;
 
 static const char *lh_basename(const char *path) {
@@ -76,11 +81,22 @@ static int lh_digest_stream(lh_algorithm alg, FILE *file, char *hex) {
   return status == LONEHASH_OK ? 0 : 1;
 }
 
+static int lh_prepare_stdin(void) {
+#ifdef _WIN32
+  return _setmode(_fileno(stdin), _O_BINARY) == -1 ? 1 : 0;
+#else
+  return 0;
+#endif
+}
+
 static int lh_digest_path(lh_algorithm alg, const char *path, char *hex) {
   FILE *file;
   int rc;
 
   if (strcmp(path, "-") == 0) {
+    if (lh_prepare_stdin() != 0) {
+      return 1;
+    }
     return lh_digest_stream(alg, stdin, hex);
   }
 
@@ -164,7 +180,7 @@ int main(int argc, char **argv) {
 
   failed = 0;
   if (first_file >= argc) {
-    if (lh_digest_stream(alg, stdin, hex) != 0) {
+    if (lh_prepare_stdin() != 0 || lh_digest_stream(alg, stdin, hex) != 0) {
       fprintf(stderr, "%s: stdin: read failed\n", prog);
       return 1;
     }

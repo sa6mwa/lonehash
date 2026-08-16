@@ -74,6 +74,7 @@ case "${1:-build}" in
     printf 'export LUA_PATH=%q\n' "$tree/share/lua/5.5/?.lua;$tree/share/lua/5.5/?/init.lua;;"
     printf 'export LUA_CPATH=%q\n' "$tree/lib/lua/5.5/?.so;;"
     printf 'export LD_LIBRARY_PATH=%q\n' "$sdk_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    printf 'export DYLD_LIBRARY_PATH=%q\n' "$sdk_lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
     ;;
   test)
     build_rock
