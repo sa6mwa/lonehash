@@ -105,6 +105,7 @@ static void test_file_helpers(void) {
   expect_string("md5 path hex", md5_hex, "900150983cd24fb0d6963f7d28e17f72");
   lonehash_sha256_destroy(sha);
   lonehash_md5_destroy(md5);
+  remove(path);
 }
 
 static void test_error_paths(void) {
@@ -202,6 +203,8 @@ int main(void) {
   test_md5_vectors();
   test_file_helpers();
   test_error_paths();
-  test_large_one_shot_update_matches_streaming();
+  if (getenv("LONEHASH_TEST_SKIP_LARGE") == NULL) {
+    test_large_one_shot_update_matches_streaming();
+  }
   return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

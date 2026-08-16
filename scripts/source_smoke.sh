@@ -21,7 +21,9 @@ if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   sort "$tmp/archive-manifest" >"$tmp/archive-manifest.sorted"
   diff -u "$tmp/expected-manifest.sorted" "$tmp/archive-manifest.sorted"
 fi
-cmake -S "$tmp/lonehash-$version" -B "$tmp/build" -G Ninja
+cmake -S "$tmp/lonehash-$version" -B "$tmp/build" -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$tmp/lonehash-$version/cmake/toolchains/lonehash-cross.cmake" \
+  -DLONEHASH_TARGET_ID=x86_64-linux-gnu
 grep "#define LONEHASH_VERSION \"$version\"" \
   "$tmp/build/generated/include/lonehash/lonehash.h" >/dev/null
 grep "Version: $version" "$tmp/build/lonehash.pc" >/dev/null

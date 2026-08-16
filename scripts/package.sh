@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 version=$("$root/scripts/release_version.sh")
 dist="${LONEHASH_DIST_DIR:-$root/dist}"
-target="${1:-host}"
+target="${1:-x86_64-linux-gnu}"
 preset="${2:-release}"
 stage="$root/.cache/package/$target/stage"
 prefix="$stage/lonehash-$version-$target"

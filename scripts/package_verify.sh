@@ -67,8 +67,7 @@ assert_single_root() {
 scan_elf_runtime_paths() {
   artifact=$1
   dir=$2
-  readelf_tool=${READELF:-readelf}
-  command -v "$readelf_tool" >/dev/null 2>&1 || return 0
+  readelf_tool=$3
   find "$dir" -type f -print | while IFS= read -r file; do
     if "$readelf_tool" -h "$file" >/dev/null 2>&1; then
       dynamic=$("$readelf_tool" -d "$file" 2>/dev/null || true)
@@ -91,24 +90,10 @@ scan_elf_runtime_paths() {
   done
 }
 
-darwin_otool() {
-  if [ -n "${OTOOL:-}" ]; then
-    printf '%s\n' "$OTOOL"
-  elif command -v otool >/dev/null 2>&1; then
-    command -v otool
-  elif [ -n "${HOME:-}" ] &&
-    [ -x "$HOME/.local/cross/osxcross/bin/${CPKT_OSXCROSS_HOST:-arm64-apple-darwin25}-otool" ]; then
-    printf '%s/.local/cross/osxcross/bin/%s-otool\n' "$HOME" \
-      "${CPKT_OSXCROSS_HOST:-arm64-apple-darwin25}"
-  else
-    return 1
-  fi
-}
-
 scan_darwin_runtime_paths() {
   artifact=$1
   dir=$2
-  otool_tool=$(darwin_otool) || fail "Darwin artifact requires target otool: $artifact"
+  otool_tool=$3
   find "$dir" -type f -print | while IFS= read -r file; do
     file "$file" | grep 'Mach-O' >/dev/null 2>&1 || continue
     if "$otool_tool" -L "$file" >/dev/null 2>&1; then
@@ -168,13 +153,14 @@ EOF
 verify_host_consumers() {
   artifact=$1
   prefix=$2
+  cc=$3
   consumer="$tmp/consumer-${artifact%.tar.gz}"
   write_consumer_source "$consumer/pkgconfig"
-  cc -o "$consumer/pkgconfig/shared" "$consumer/pkgconfig/main.c" \
+  "$cc" -o "$consumer/pkgconfig/shared" "$consumer/pkgconfig/main.c" \
     $(PKG_CONFIG_PATH="$prefix/lib/pkgconfig" pkg-config --cflags --libs lonehash)
   LD_LIBRARY_PATH="$prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     "$consumer/pkgconfig/shared"
-  cc -o "$consumer/pkgconfig/static" "$consumer/pkgconfig/main.c" \
+  "$cc" -o "$consumer/pkgconfig/static" "$consumer/pkgconfig/main.c" \
     $(PKG_CONFIG_PATH="$prefix/lib/pkgconfig" pkg-config --cflags --libs --static lonehash)
 
   mkdir -p "$consumer/cmake"
@@ -187,7 +173,10 @@ add_executable(consumer main.c)
 target_link_libraries(consumer PRIVATE lonehash::shared)
 EOF
   cmake -S "$consumer/cmake" -B "$consumer/cmake-build" -G Ninja \
-    -DCMAKE_PREFIX_PATH="$prefix"
+    -DCMAKE_PREFIX_PATH="$prefix" \
+    -Dlonehash_DIR="$prefix/lib/cmake/lonehash" \
+    -DCMAKE_TOOLCHAIN_FILE="$root/cmake/toolchains/lonehash-cross.cmake" \
+    -DLONEHASH_TARGET_ID=x86_64-linux-gnu
   cmake --build "$consumer/cmake-build"
   LD_LIBRARY_PATH="$prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     "$consumer/cmake-build/consumer"
@@ -197,6 +186,8 @@ verify_custom_install_dirs() {
   smoke="$tmp/custom-install-dirs"
   prefix="$smoke/prefix"
   cmake -S "$root" -B "$smoke/build" -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$root/cmake/toolchains/lonehash-cross.cmake" \
+    -DLONEHASH_TARGET_ID=x86_64-linux-gnu \
     -DCMAKE_BUILD_TYPE=Release \
     -DLONEHASH_BUILD_EXAMPLES=OFF \
     -DLONEHASH_BUILD_TESTS=OFF \
@@ -211,7 +202,8 @@ verify_custom_install_dirs() {
     "$prefix/lib64/pkgconfig/lonehash.pc" >/dev/null
   grep 'libdir=${prefix}/lib64' "$prefix/lib64/pkgconfig/lonehash.pc" >/dev/null
   write_consumer_source "$smoke/pkgconfig"
-  cc -o "$smoke/pkgconfig/consumer" "$smoke/pkgconfig/main.c" \
+  cc=$("$root/scripts/discover_target_tools.sh" "$smoke/build" x86_64-linux-gnu | sed -n 's/^CC=//p')
+  "$cc" -o "$smoke/pkgconfig/consumer" "$smoke/pkgconfig/main.c" \
     $(PKG_CONFIG_PATH="$prefix/lib64/pkgconfig" pkg-config --cflags --libs lonehash)
   LD_LIBRARY_PATH="$prefix/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     "$smoke/pkgconfig/consumer"
@@ -308,12 +300,19 @@ while read -r _hash artifact; do
         -print -quit | grep . >/dev/null &&
         fail "library SDK unexpectedly contains Lua payload: $artifact"
       scan_tree "$artifact" "$prefix"
+      target_id=${artifact#lonehash-"$version"-}
+      target_id=${target_id%.tar.gz}
+      case "$target_id" in
+        x86_64-linux-gnu) build_preset=release ;;
+        *) build_preset="$target_id-release" ;;
+      esac
+      eval "$("$root/scripts/discover_target_tools.sh" "$root/build/$build_preset" "$target_id")"
       case "$artifact" in
-        *-arm64-apple-darwin.tar.gz) scan_darwin_runtime_paths "$artifact" "$prefix" ;;
-        *) scan_elf_runtime_paths "$artifact" "$prefix" ;;
+        *-arm64-apple-darwin.tar.gz) scan_darwin_runtime_paths "$artifact" "$prefix" "$OTOOL" ;;
+        *) scan_elf_runtime_paths "$artifact" "$prefix" "$READELF" ;;
       esac
       case "$artifact" in
-        lonehash-"$version"-host.tar.gz) verify_host_consumers "$artifact" "$prefix" ;;
+        lonehash-"$version"-x86_64-linux-gnu.tar.gz) verify_host_consumers "$artifact" "$prefix" "$CC" ;;
       esac
       ;;
     lh-"$version"-*.tar.gz)
@@ -328,9 +327,16 @@ while read -r _hash artifact; do
         fail "lh CLI package contains library SDK directories: $artifact"
       fi
       scan_tree "$artifact" "$prefix"
+      target_id=${artifact#lh-"$version"-}
+      target_id=${target_id%.tar.gz}
+      case "$target_id" in
+        x86_64-linux-gnu) build_preset=release ;;
+        *) build_preset="$target_id-release" ;;
+      esac
+      eval "$("$root/scripts/discover_target_tools.sh" "$root/build/$build_preset" "$target_id")"
       case "$artifact" in
-        *-arm64-apple-darwin.tar.gz) scan_darwin_runtime_paths "$artifact" "$prefix" ;;
-        *) scan_elf_runtime_paths "$artifact" "$prefix" ;;
+        *-arm64-apple-darwin.tar.gz) scan_darwin_runtime_paths "$artifact" "$prefix" "$OTOOL" ;;
+        *) scan_elf_runtime_paths "$artifact" "$prefix" "$READELF" ;;
       esac
       ;;
     *)

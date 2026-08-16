@@ -20,8 +20,7 @@ Cache:
   ${CPKT_TOOLCHAIN_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/c.pkt.systems/toolchains}
 
 Download policy:
-  Complete local compiler collections are preferred. Missing downloadable Linux
-  collections are installed from pinned Bootlin stable tarballs. Apple/Darwin
+  Linux uses only pinned Bootlin stable compiler collections. Apple/Darwin
   toolchains are discovery-only because Apple SDK access is not public.
 USAGE
 }
@@ -58,6 +57,18 @@ download_file() {
   else
     die "curl or wget is required to download toolchains"
   fi
+}
+
+with_cache_lock() {
+  lock_path=$1
+  shift
+  command -v flock >/dev/null 2>&1 || die "flock is required to provision shared toolchains"
+  mkdir -p "$(dirname "$lock_path")"
+  exec 9>"$lock_path"
+  flock -w "${CPKT_TOOLCHAIN_LOCK_TIMEOUT:-600}" 9 || die "timed out waiting for shared toolchain lock: $lock_path"
+  "$@"
+  flock -u 9
+  exec 9>&-
 }
 
 target_ids() {
@@ -144,21 +155,19 @@ complete_gnu_collection() {
   sysroot=$3
   [ -x "$root/bin/$prefix-gcc" ] &&
     [ -x "$root/bin/$prefix-g++" ] &&
+    [ -x "$root/bin/$prefix-ld" ] &&
     [ -x "$root/bin/$prefix-ar" ] &&
     [ -x "$root/bin/$prefix-ranlib" ] &&
+    [ -x "$root/bin/$prefix-strip" ] &&
+    [ -x "$root/bin/$prefix-nm" ] &&
+    [ -x "$root/bin/$prefix-objcopy" ] &&
+    [ -x "$root/bin/$prefix-objdump" ] &&
+    [ -x "$root/bin/$prefix-addr2line" ] &&
+    [ -x "$root/bin/$prefix-readelf" ] &&
     { [ -f "$sysroot/include/stdio.h" ] || [ -f "$sysroot/usr/include/stdio.h" ]; } &&
+    { [ -e "$sysroot/usr/lib/libc.so" ] || [ -e "$sysroot/lib/libc.so" ] || [ -e "$sysroot/lib/libc.so.6" ]; } &&
     existing_compiler_file "$root/bin/$prefix-g++" libstdc++.a >/dev/null &&
     existing_compiler_file "$root/bin/$prefix-g++" libgcc.a >/dev/null
-}
-
-complete_native_collection() {
-  [ -x /usr/bin/cc ] &&
-    [ -x /usr/bin/c++ ] &&
-    [ -x /usr/bin/ar ] &&
-    [ -x /usr/bin/ranlib ] &&
-    [ -f /usr/include/stdio.h ] &&
-    existing_compiler_file /usr/bin/c++ libstdc++.a >/dev/null &&
-    existing_compiler_file /usr/bin/c++ libgcc.a >/dev/null
 }
 
 complete_apple_collection() {
@@ -166,88 +175,22 @@ complete_apple_collection() {
   osxcross_host=${CPKT_OSXCROSS_HOST:-arm64-apple-darwin25}
   [ -x "$osxcross_root/bin/$osxcross_host-clang" ] &&
     [ -x "$osxcross_root/bin/$osxcross_host-clang++" ] &&
+    [ -x "$osxcross_root/bin/$osxcross_host-ld" ] &&
     [ -x "$osxcross_root/bin/$osxcross_host-ar" ] &&
-    [ -x "$osxcross_root/bin/$osxcross_host-ranlib" ]
-}
-
-local_candidate() {
-  target=$1
-  case "$target" in
-    x86_64-linux-gnu)
-      if complete_native_collection; then
-        printf 'local|/usr|native|/usr|/usr/bin/cc|/usr/bin/c++|/usr/bin/ar|/usr/bin/ranlib|/usr/bin/strip|/usr/bin/readelf\n'
-        return 0
-      fi
-      ;;
-    x86_64-linux-musl)
-      if [ -n "${CPKT_X86_64_MUSL_PREFIX:-}" ] &&
-          complete_gnu_collection "$CPKT_X86_64_MUSL_PREFIX" x86_64-linux-musl "$CPKT_X86_64_MUSL_PREFIX/x86_64-linux-musl"; then
-        r=$CPKT_X86_64_MUSL_PREFIX
-        printf 'local|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' "$r" x86_64-linux-musl "$r/x86_64-linux-musl" "$r/bin/x86_64-linux-musl-gcc" "$r/bin/x86_64-linux-musl-g++" "$r/bin/x86_64-linux-musl-ar" "$r/bin/x86_64-linux-musl-ranlib" "$r/bin/x86_64-linux-musl-strip" "$r/bin/x86_64-linux-musl-readelf"
-        return 0
-      fi
-      ;;
-    aarch64-linux-gnu)
-      if [ -n "${CPKT_AARCH64_GNU_PREFIX:-}" ] &&
-          complete_gnu_collection "$CPKT_AARCH64_GNU_PREFIX" aarch64-linux-gnu "$CPKT_AARCH64_GNU_PREFIX/aarch64-linux-gnu"; then
-        r=$CPKT_AARCH64_GNU_PREFIX
-        printf 'local|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' "$r" aarch64-linux-gnu "$r/aarch64-linux-gnu" "$r/bin/aarch64-linux-gnu-gcc" "$r/bin/aarch64-linux-gnu-g++" "$r/bin/aarch64-linux-gnu-ar" "$r/bin/aarch64-linux-gnu-ranlib" "$r/bin/aarch64-linux-gnu-strip" "$r/bin/aarch64-linux-gnu-readelf"
-        return 0
-      elif complete_gnu_collection /usr aarch64-linux-gnu /usr/aarch64-linux-gnu; then
-        printf 'local|/usr|aarch64-linux-gnu|/usr/aarch64-linux-gnu|/usr/bin/aarch64-linux-gnu-gcc|/usr/bin/aarch64-linux-gnu-g++|/usr/bin/aarch64-linux-gnu-ar|/usr/bin/aarch64-linux-gnu-ranlib|/usr/bin/aarch64-linux-gnu-strip|/usr/bin/aarch64-linux-gnu-readelf\n'
-        return 0
-      fi
-      ;;
-    aarch64-linux-musl)
-      if [ -n "${CPKT_AARCH64_MUSL_PREFIX:-}" ]; then
-        r=$CPKT_AARCH64_MUSL_PREFIX
-      elif [ -n "${HOME:-}" ]; then
-        r=$HOME/.local/cross/aarch64-linux-musl
-      else
-        r=
-      fi
-      if [ -n "$r" ] && complete_gnu_collection "$r" aarch64-linux-musl "$r/aarch64-linux-musl"; then
-        printf 'local|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' "$r" aarch64-linux-musl "$r/aarch64-linux-musl" "$r/bin/aarch64-linux-musl-gcc" "$r/bin/aarch64-linux-musl-g++" "$r/bin/aarch64-linux-musl-ar" "$r/bin/aarch64-linux-musl-ranlib" "$r/bin/aarch64-linux-musl-strip" "$r/bin/aarch64-linux-musl-readelf"
-        return 0
-      fi
-      ;;
-    armhf-linux-gnu)
-      if [ -n "${CPKT_ARMHF_GNU_PREFIX:-}" ] &&
-          complete_gnu_collection "$CPKT_ARMHF_GNU_PREFIX" arm-linux-gnueabihf "$CPKT_ARMHF_GNU_PREFIX/arm-linux-gnueabihf"; then
-        r=$CPKT_ARMHF_GNU_PREFIX
-        printf 'local|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' "$r" arm-linux-gnueabihf "$r/arm-linux-gnueabihf" "$r/bin/arm-linux-gnueabihf-gcc" "$r/bin/arm-linux-gnueabihf-g++" "$r/bin/arm-linux-gnueabihf-ar" "$r/bin/arm-linux-gnueabihf-ranlib" "$r/bin/arm-linux-gnueabihf-strip" "$r/bin/arm-linux-gnueabihf-readelf"
-        return 0
-      elif complete_gnu_collection /usr arm-linux-gnueabihf /usr/arm-linux-gnueabihf; then
-        printf 'local|/usr|arm-linux-gnueabihf|/usr/arm-linux-gnueabihf|/usr/bin/arm-linux-gnueabihf-gcc|/usr/bin/arm-linux-gnueabihf-g++|/usr/bin/arm-linux-gnueabihf-ar|/usr/bin/arm-linux-gnueabihf-ranlib|/usr/bin/arm-linux-gnueabihf-strip|/usr/bin/arm-linux-gnueabihf-readelf\n'
-        return 0
-      fi
-      ;;
-    armhf-linux-musl)
-      if [ -n "${CPKT_ARMHF_MUSL_PREFIX:-}" ]; then
-        r=$CPKT_ARMHF_MUSL_PREFIX
-      elif [ -n "${HOME:-}" ]; then
-        r=$HOME/.local/cross/arm-linux-musleabihf
-      else
-        r=
-      fi
-      if [ -n "$r" ] && complete_gnu_collection "$r" arm-linux-musleabihf "$r/arm-linux-musleabihf"; then
-        printf 'local|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' "$r" arm-linux-musleabihf "$r/arm-linux-musleabihf" "$r/bin/arm-linux-musleabihf-gcc" "$r/bin/arm-linux-musleabihf-g++" "$r/bin/arm-linux-musleabihf-ar" "$r/bin/arm-linux-musleabihf-ranlib" "$r/bin/arm-linux-musleabihf-strip" "$r/bin/arm-linux-musleabihf-readelf"
-        return 0
-      fi
-      ;;
-    arm64-apple-darwin)
-      if complete_apple_collection; then
-        r=${OSXCROSS_ROOT:-$HOME/.local/cross/osxcross}
-        p=${CPKT_OSXCROSS_HOST:-arm64-apple-darwin25}
-        printf 'local|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' "$r" "$p" "" "$r/bin/$p-clang" "$r/bin/$p-clang++" "$r/bin/$p-ar" "$r/bin/$p-ranlib" "$r/bin/$p-strip" "$r/bin/$p-otool"
-        return 0
-      fi
-      ;;
-  esac
-  return 1
+    [ -x "$osxcross_root/bin/$osxcross_host-nm" ] &&
+    [ -x "$osxcross_root/bin/$osxcross_host-otool" ]
 }
 
 install_bootlin() {
+  target=$1
+  meta=$(bootlin_meta "$target") || die "$target is not downloadable by this lifecycle"
+  IFS='|' read -r _bootlin_arch toolchain_name _sha256 _boot_prefix _boot_sysroot <<EOF
+$meta
+EOF
+  with_cache_lock "$(cache_root)/locks/bootlin-$toolchain_name.lock" install_bootlin_locked "$target"
+}
+
+install_bootlin_locked() {
   target=$1
   meta=$(bootlin_meta "$target") || die "$target is not downloadable by this lifecycle"
   IFS='|' read -r bootlin_arch toolchain_name sha256 boot_prefix boot_sysroot <<EOF
@@ -260,7 +203,7 @@ EOF
   archive_path=$archive_dir/$archive_name
   url=https://toolchains.bootlin.com/downloads/releases/toolchains/$bootlin_arch/tarballs/$archive_name
 
-  if [ -d "$root_dir/bin" ]; then
+  if complete_gnu_collection "$root_dir" "$boot_prefix" "$root_dir/$boot_sysroot"; then
     printf '%s\n' "$root_dir"
     return 0
   fi
@@ -279,7 +222,15 @@ EOF
   else
     actual=$(sha256_file "$archive_path")
     if [ "$actual" != "$sha256" ]; then
-      die "cached archive checksum mismatch for $archive_path: expected $sha256, got $actual"
+      printf 'cpkt-toolchains: discarding corrupt cached archive: %s\n' "$archive_path" >&2
+      rm -f -- "$archive_path"
+      tmp_archive=$archive_path.tmp.$$
+      trap 'rm -f "$tmp_archive"' EXIT HUP INT TERM
+      download_file "$url" "$tmp_archive"
+      actual=$(sha256_file "$tmp_archive")
+      [ "$actual" = "$sha256" ] || die "checksum mismatch for $archive_name: expected $sha256, got $actual"
+      mv "$tmp_archive" "$archive_path"
+      trap - EXIT HUP INT TERM
     fi
   fi
 
@@ -292,6 +243,7 @@ EOF
   mv "$tmp_extract/$toolchain_name" "$root_dir"
   rm -rf "$tmp_extract"
   trap - EXIT HUP INT TERM
+  complete_gnu_collection "$root_dir" "$boot_prefix" "$root_dir/$boot_sysroot" || die "incomplete extracted toolchain: $root_dir"
   printf '%s\n' "$root_dir"
 }
 
@@ -303,22 +255,26 @@ $meta
 EOF
   r=$(cache_root)/roots/$toolchain_name
   if complete_gnu_collection "$r" "$boot_prefix" "$r/$boot_sysroot"; then
-    printf 'cache|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' "$r" "$boot_prefix" "$r/$boot_sysroot" "$r/bin/$boot_prefix-gcc" "$r/bin/$boot_prefix-g++" "$r/bin/$boot_prefix-ar" "$r/bin/$boot_prefix-ranlib" "$r/bin/$boot_prefix-strip" "$r/bin/$boot_prefix-readelf"
+    printf 'bootlin|%s|%s|%s\n' "$r" "$boot_prefix" "$r/$boot_sysroot"
     return 0
   fi
   return 1
 }
 
+apple_candidate() {
+  complete_apple_collection || return 1
+  r=${OSXCROSS_ROOT:-$HOME/.local/cross/osxcross}
+  p=${CPKT_OSXCROSS_HOST:-arm64-apple-darwin25}
+  printf 'osxcross|%s|%s|\n' "$r" "$p"
+}
+
 resolved_candidate() {
   target=$1
   require_target "$target"
-  if local_candidate "$target"; then
-    return 0
-  fi
-  if bootlin_candidate "$target"; then
-    return 0
-  fi
-  return 1
+  case "$target" in
+    arm64-apple-darwin) apple_candidate ;;
+    *) bootlin_candidate "$target" ;;
+  esac
 }
 
 report_target() {
@@ -327,7 +283,7 @@ report_target() {
   printf 'target=%s\n' "$target"
   printf 'cache=%s\n' "$(cache_root)"
   if candidate=$(resolved_candidate "$target"); then
-    IFS='|' read -r source root prefix sysroot cc cxx ar ranlib strip readelf <<EOF
+    IFS='|' read -r source root prefix sysroot <<EOF
 $candidate
 EOF
     printf 'status=ready\n'
@@ -335,15 +291,29 @@ EOF
     printf 'root=%s\n' "$root"
     printf 'prefix=%s\n' "$prefix"
     printf 'sysroot=%s\n' "$sysroot"
-    printf 'cc=%s\n' "$cc"
-    printf 'cxx=%s\n' "$cxx"
-    printf 'ar=%s\n' "$ar"
-    printf 'ranlib=%s\n' "$ranlib"
-    printf 'strip=%s\n' "$strip"
-    printf 'readelf=%s\n' "$readelf"
+    if [ "$target" = arm64-apple-darwin ]; then
+      printf 'cc=%s\n' "$root/bin/$prefix-clang"
+      printf 'cxx=%s\n' "$root/bin/$prefix-clang++"
+    else
+      printf 'cc=%s\n' "$root/bin/$prefix-gcc"
+      printf 'cxx=%s\n' "$root/bin/$prefix-g++"
+    fi
+    printf 'ld=%s\n' "$root/bin/$prefix-ld"
+    printf 'ar=%s\n' "$root/bin/$prefix-ar"
+    printf 'ranlib=%s\n' "$root/bin/$prefix-ranlib"
+    printf 'strip=%s\n' "$root/bin/$prefix-strip"
+    printf 'nm=%s\n' "$root/bin/$prefix-nm"
+    printf 'objcopy=%s\n' "$root/bin/$prefix-objcopy"
+    printf 'objdump=%s\n' "$root/bin/$prefix-objdump"
+    printf 'addr2line=%s\n' "$root/bin/$prefix-addr2line"
     if [ "$target" != arm64-apple-darwin ]; then
-      printf 'libstdcxx_a=%s\n' "$(existing_compiler_file "$cxx" libstdc++.a)"
-      printf 'libgcc_a=%s\n' "$(existing_compiler_file "$cxx" libgcc.a)"
+      printf 'readelf=%s\n' "$root/bin/$prefix-readelf"
+    else
+      printf 'otool=%s\n' "$root/bin/$prefix-otool"
+    fi
+    if [ "$target" != arm64-apple-darwin ]; then
+      printf 'libstdcxx_a=%s\n' "$(existing_compiler_file "$root/bin/$prefix-g++" libstdc++.a)"
+      printf 'libgcc_a=%s\n' "$(existing_compiler_file "$root/bin/$prefix-g++" libgcc.a)"
     else
       printf 'cxx_runtime=libc++\n'
       printf 'static_cxx_runtime_archives=not-applicable\n'
@@ -372,14 +342,17 @@ ensure_target() {
     report_target "$target"
     return 0
   fi
-  install_bootlin "$target" >/dev/null
+  case "$target" in
+    arm64-apple-darwin) apple_candidate >/dev/null || die "arm64-apple-darwin requires a complete local osxcross SDK toolchain" ;;
+    *) install_bootlin "$target" >/dev/null ;;
+  esac
   report_target "$target"
 }
 
 print_env() {
   target=$1
   candidate=$(resolved_candidate "$target") || die "target is missing; run: cpkt-toolchains.sh ensure $target"
-  IFS='|' read -r source root prefix sysroot cc cxx ar ranlib strip readelf <<EOF
+  IFS='|' read -r source root prefix sysroot <<EOF
 $candidate
 EOF
   printf 'export CPKT_TARGET=%s\n' "$target"
@@ -387,15 +360,26 @@ EOF
   printf 'export CPKT_TOOLCHAIN_ROOT=%s\n' "$root"
   printf 'export CPKT_TOOLCHAIN_PREFIX=%s\n' "$prefix"
   printf 'export CPKT_SYSROOT=%s\n' "$sysroot"
-  printf 'export CC=%s\n' "$cc"
-  printf 'export CXX=%s\n' "$cxx"
-  printf 'export AR=%s\n' "$ar"
-  printf 'export RANLIB=%s\n' "$ranlib"
-  printf 'export STRIP=%s\n' "$strip"
-  printf 'export READELF=%s\n' "$readelf"
+  if [ "$target" = arm64-apple-darwin ]; then
+    printf 'export CC=%s\n' "$root/bin/$prefix-clang"
+    printf 'export CXX=%s\n' "$root/bin/$prefix-clang++"
+  else
+    printf 'export CC=%s\n' "$root/bin/$prefix-gcc"
+    printf 'export CXX=%s\n' "$root/bin/$prefix-g++"
+  fi
+  printf 'export LD=%s\n' "$root/bin/$prefix-ld"
+  printf 'export AR=%s\n' "$root/bin/$prefix-ar"
+  printf 'export RANLIB=%s\n' "$root/bin/$prefix-ranlib"
+  printf 'export STRIP=%s\n' "$root/bin/$prefix-strip"
+  printf 'export NM=%s\n' "$root/bin/$prefix-nm"
   if [ "$target" != arm64-apple-darwin ]; then
-    printf 'export CPKT_LIBSTDCXX_A=%s\n' "$(existing_compiler_file "$cxx" libstdc++.a)"
-    printf 'export CPKT_LIBGCC_A=%s\n' "$(existing_compiler_file "$cxx" libgcc.a)"
+    printf 'export READELF=%s\n' "$root/bin/$prefix-readelf"
+  else
+    printf 'export OTOOL=%s\n' "$root/bin/$prefix-otool"
+  fi
+  if [ "$target" != arm64-apple-darwin ]; then
+    printf 'export CPKT_LIBSTDCXX_A=%s\n' "$(existing_compiler_file "$root/bin/$prefix-g++" libstdc++.a)"
+    printf 'export CPKT_LIBGCC_A=%s\n' "$(existing_compiler_file "$root/bin/$prefix-g++" libgcc.a)"
   else
     printf 'export CPKT_CXX_RUNTIME=libc++\n'
     printf 'export CPKT_STATIC_CXX_RUNTIME_ARCHIVES=not-applicable\n'

@@ -32,21 +32,12 @@ option(LONEHASH_ENABLE_ARM_SHA2
        "Enable AArch64 SHA2 acceleration when available" ON)
 option(LONEHASH_INSTALL "Install lonehash targets and metadata" ON)
 set(LONEHASH_TARGET_ID
-    "host"
+    "x86_64-linux-gnu"
     CACHE STRING "Release target identifier")
-if(LONEHASH_TARGET_ID STREQUAL "host" AND NOT "$ENV{LONEHASH_TARGET_ID}" STREQUAL
-                                      "")
-  set(LONEHASH_TARGET_ID
-      "$ENV{LONEHASH_TARGET_ID}"
-      CACHE STRING "Release target identifier" FORCE)
-endif()
 set(LONEHASH_DIST_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/dist"
     CACHE PATH "Release artifact directory")
 
-set(CMAKE_C_STANDARD 90)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_INSTALL_RPATH "")
 set(CMAKE_BUILD_RPATH "")
@@ -66,7 +57,7 @@ set(LONEHASH_PUBLIC_INCLUDE_DIR
 set(LONEHASH_SOURCES src/lonehash.c)
 set(LONEHASH_SHA_NI_TARGET OFF)
 set(LONEHASH_ARM_SHA2_TARGET OFF)
-if(LONEHASH_TARGET_ID STREQUAL "host")
+if(LONEHASH_TARGET_ID STREQUAL "x86_64-linux-gnu")
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|i[3-6]86)$")
     set(LONEHASH_SHA_NI_TARGET ON)
   endif()
@@ -91,17 +82,21 @@ if(LONEHASH_ENABLE_ARM_SHA2
   set(LONEHASH_HAVE_ARM_SHA2 ON)
 endif()
 
+function(lonehash_configure_c89_target target)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4 /WX)
+  elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    target_compile_options(${target} PRIVATE -std=c89 -Wall -Wextra -Wpedantic
+                                             -pedantic-errors -Werror)
+  endif()
+endfunction()
+
 function(lonehash_target_defaults target)
   target_include_directories(
     ${target}
     PUBLIC $<BUILD_INTERFACE:${LONEHASH_PUBLIC_INCLUDE_DIR}>
            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-  target_compile_features(${target} PUBLIC c_std_90)
-  if(MSVC)
-    target_compile_options(${target} PRIVATE /W4 /WX)
-  else()
-    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
-  endif()
+  lonehash_configure_c89_target(${target})
   if(LONEHASH_HAVE_SHA_NI)
     target_compile_definitions(${target} PRIVATE LONEHASH_HAVE_SHA_NI=1)
     set_source_files_properties(src/lonehash_sha256_ni.c PROPERTIES
@@ -154,11 +149,7 @@ endif()
 
 if(LONEHASH_BUILD_CLI)
   add_executable(lh src/lh.c)
-  if(MSVC)
-    target_compile_options(lh PRIVATE /W4 /WX)
-  else()
-    target_compile_options(lh PRIVATE -Wall -Wextra -Wpedantic -Werror)
-  endif()
+  lonehash_configure_c89_target(lh)
   target_include_directories(lh PRIVATE "${LONEHASH_PUBLIC_INCLUDE_DIR}")
   if(TARGET lonehash_static)
     target_link_libraries(lh PRIVATE lonehash_static)
@@ -174,12 +165,16 @@ if(LONEHASH_BUILD_LUA)
   if(NOT TARGET lonehash_shared)
     message(FATAL_ERROR "LONEHASH_BUILD_LUA requires LONEHASH_BUILD_SHARED=ON")
   endif()
-  find_program(LUA_EXECUTABLE lua REQUIRED)
+  find_program(LUA_EXECUTABLE lua REQUIRED NO_CMAKE_FIND_ROOT_PATH)
   find_path(LUA_INCLUDE_DIR lua.h PATHS /usr/local/include /usr/include
-            REQUIRED)
+            REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+  set(LONEHASH_LUA_INCLUDE_DIR
+      "${CMAKE_CURRENT_BINARY_DIR}/generated/host-lua-include")
+  file(COPY "${LUA_INCLUDE_DIR}/" DESTINATION "${LONEHASH_LUA_INCLUDE_DIR}"
+       FILES_MATCHING PATTERN "*.h")
   add_library(lonehash_lua_core MODULE lua/lonehash/core.c)
   target_include_directories(lonehash_lua_core
-                             PRIVATE "${LUA_INCLUDE_DIR}"
+                             PRIVATE "${LONEHASH_LUA_INCLUDE_DIR}"
                                      "${LONEHASH_PUBLIC_INCLUDE_DIR}")
   target_link_libraries(lonehash_lua_core PRIVATE lonehash_shared)
   set_target_properties(lonehash_lua_core PROPERTIES C_STANDARD 99
@@ -204,17 +199,20 @@ endif()
 
 if(LONEHASH_BUILD_BENCHMARKS)
   add_executable(lonehash_bench bench/bench_lonehash.c)
+  lonehash_configure_c89_target(lonehash_bench)
   target_link_libraries(lonehash_bench PRIVATE lonehash)
 endif()
 
 if(LONEHASH_BUILD_TESTS)
   enable_testing()
   add_executable(lonehash_tests tests/test_lonehash.c)
+  lonehash_configure_c89_target(lonehash_tests)
   target_link_libraries(lonehash_tests PRIVATE lonehash)
   add_test(NAME lonehash.unit COMMAND lonehash_tests)
   set_tests_properties(lonehash.unit PROPERTIES LABELS "unit;local" TIMEOUT 20)
 
   add_executable(lonehash_header_c89 tests/header_c89.c)
+  lonehash_configure_c89_target(lonehash_header_c89)
   target_link_libraries(lonehash_header_c89 PRIVATE lonehash)
   add_test(NAME lonehash.header-c89 COMMAND lonehash_header_c89)
   set_tests_properties(lonehash.header-c89 PROPERTIES LABELS "smoke;local"
@@ -234,6 +232,16 @@ if(LONEHASH_BUILD_TESTS)
     set_tests_properties(lonehash.lua PROPERTIES LABELS "smoke;local;lua"
                                                  TIMEOUT 10)
   endif()
+  add_test(NAME lonehash.lifecycle
+           COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_lifecycle.sh"
+                   "${CMAKE_CURRENT_SOURCE_DIR}")
+  set_tests_properties(lonehash.lifecycle PROPERTIES LABELS "local;lifecycle"
+                                                   TIMEOUT 20)
+  add_test(NAME lonehash.release-version
+           COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_release_version.sh"
+                   "${CMAKE_CURRENT_SOURCE_DIR}")
+  set_tests_properties(lonehash.release-version PROPERTIES LABELS "local;lifecycle"
+                                                         TIMEOUT 20)
 endif()
 
 if(LONEHASH_INSTALL)

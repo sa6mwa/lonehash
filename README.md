@@ -28,10 +28,13 @@ printf abc | lh -s
 ## Build
 
 ```sh
-cmake --preset debug
-cmake --build --preset debug
-ctest --preset debug
+make build
+make test
+make valgrind
 ```
+
+Linux builds resolve the pinned Bootlin compiler collection automatically; the
+shared cache location can be overridden with `CPKT_TOOLCHAIN_CACHE`.
 
 The lifecycle command surface is available through:
 

@@ -13,7 +13,9 @@
         "LONEHASH_BUILD_EXAMPLES": "ON",
         "LONEHASH_BUILD_TESTS": "ON",
         "LONEHASH_BUILD_BENCHMARKS": "ON",
-        "LONEHASH_BUILD_CLI": "ON"
+        "LONEHASH_BUILD_CLI": "ON",
+        "LONEHASH_TARGET_ID": "x86_64-linux-gnu",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/lonehash-cross.cmake"
       }
     },
     {
@@ -22,6 +24,13 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "LONEHASH_BUILD_LUA": "ON"
+      }
+    },
+    {
+      "name": "valgrind",
+      "inherits": "debug",
+      "cacheVariables": {
+        "LONEHASH_BUILD_LUA": "OFF"
       }
     },
     {
@@ -41,7 +50,7 @@
         "CMAKE_BUILD_TYPE": "Release",
         "LONEHASH_BUILD_EXAMPLES": "OFF",
         "LONEHASH_BUILD_LUA": "ON",
-        "LONEHASH_TARGET_ID": "host"
+        "LONEHASH_TARGET_ID": "x86_64-linux-gnu"
       }
     },
     {
@@ -138,6 +147,7 @@
   ],
   "buildPresets": [
     { "name": "debug", "configurePreset": "debug" },
+    { "name": "valgrind", "configurePreset": "valgrind" },
     { "name": "asan", "configurePreset": "asan" },
     { "name": "release", "configurePreset": "release" },
     {
@@ -173,6 +183,11 @@
     {
       "name": "debug",
       "configurePreset": "debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "valgrind",
+      "configurePreset": "valgrind",
       "output": { "outputOnFailure": true }
     },
     {

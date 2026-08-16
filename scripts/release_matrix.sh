@@ -20,9 +20,13 @@ for target in $targets; do
   esac
 
   eval "$("$toolchains" env "$target")"
-  export LONEHASH_TARGET_ID="$target"
   cmake --preset "$preset"
   cmake --build --preset "$preset"
   "$root/scripts/package.sh" "$target" "$preset"
   "$root/scripts/package_cli.sh" "$target" "$preset"
 done
+
+"$root/scripts/package_source.sh"
+"$root/scripts/package_lua.sh"
+"$root/scripts/package_checksums.sh"
+"$root/scripts/package_verify.sh"
