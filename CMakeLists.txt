@@ -242,6 +242,11 @@ if(LONEHASH_BUILD_TESTS)
                    "${CMAKE_CURRENT_SOURCE_DIR}")
   set_tests_properties(lonehash.release-version PROPERTIES LABELS "local;lifecycle"
                                                          TIMEOUT 20)
+  add_test(NAME lonehash.release-upload-assets
+           COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_release_upload_args.sh"
+                   "${CMAKE_CURRENT_SOURCE_DIR}")
+  set_tests_properties(lonehash.release-upload-assets PROPERTIES LABELS "local;lifecycle"
+                                                               TIMEOUT 20)
 endif()
 
 if(LONEHASH_INSTALL)

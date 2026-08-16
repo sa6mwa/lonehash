@@ -47,7 +47,9 @@ make help
 The Lua facade links against `liblonehash` through the public C API only.
 
 ```sh
+make lua-rock
 make lua-test
+make lua-env
 printf abc | ./build/release/lh.sh -sq
 lua lua/examples/hash_strings.lua
 ```
@@ -55,7 +57,26 @@ lua lua/examples/hash_strings.lua
 Lua release artifacts are produced with:
 
 ```sh
-make lua-artifacts
+make release-lua-artifacts
+```
+
+`make lua-env` prints the environment needed to run the installed local rock
+directly. The facade requires Lua 5.5.0, matching the release rockspec.
+
+## Release gates
+
+```sh
+make prerelease
+make release
+```
+
+`prerelease` runs the complete release proof graph without cleaning first.
+`release` starts from a clean build tree and then runs that same graph. After
+the artifacts and their checksum manifest have been created, use this exact
+upload set for a GitHub release:
+
+```sh
+make print-release-upload-assets
 ```
 
 ## Performance

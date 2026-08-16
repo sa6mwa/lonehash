@@ -1,7 +1,7 @@
-.PHONY: help deps-debug deps-release deps-cross configure build build-debug build-release test test-debug test-all valgrind lua-test lua-artifacts asan \
+.PHONY: help deps-debug deps-release deps-cross configure build build-debug build-release test test-debug test-all valgrind lua-rock lua-env lua-test lua-artifacts release-lua-artifacts asan \
 	bench benchmarks bench-gate package package-cli package-source package-source-smoke \
 	package-checksums package-verify verify-release-archives verify-release-privacy \
-	release-matrix finalize-slice prerelease prerelease-hardening release \
+	release-matrix release-pipeline finalize-slice prerelease prerelease-hardening release print-release-upload-assets \
 	print-release-version format clean clean-dist
 
 help:
@@ -12,7 +12,9 @@ help:
 	  'deps-cross             Provision non-native Linux release toolchains' \
 	  'test                   Run debug tests' \
 	  'valgrind               Run native debug tests under Valgrind Memcheck' \
-	  'lua-test               Run Lua facade smoke tests against build/release' \
+	  'lua-rock               Build the Lua 5.5.0 facade against an installed local SDK' \
+	  'lua-env                Print environment for the locally installed Lua rock' \
+	  'lua-test               Run Lua facade smoke tests against the local installed rock' \
 	  'release-lua-artifacts  Build Lua source tarball, rockspec, and source rock' \
 	  'asan                   Build and run ASan/UBSan preset' \
 	  'bench                  Run release-build local benchmarks' \
@@ -24,9 +26,10 @@ help:
 	  'package-verify         Verify checksum-listed release artifacts' \
 	  'release-matrix         Build/package all configured target presets' \
 	  'finalize-slice         Format, build, and run debug tests' \
-	  'prerelease             Deterministic local pre-release gate' \
-	  'prerelease-hardening   Prerelease plus package verification' \
+	  'prerelease             Full release proof without cleaning generated state' \
+	  'prerelease-hardening   Compatibility alias for the full prerelease proof' \
 	  'release                Clean final local release build and verification' \
+	  'print-release-upload-assets  Print CHECKSUMS-selected GitHub release assets' \
 	  'print-release-version  Print resolved release version' \
 	  'format                 Run clang-format over project C files' \
 	  'clean                  Remove generated build/dist/cache state' \
@@ -62,8 +65,14 @@ valgrind:
 	cmake --build --preset valgrind
 	LONEHASH_TEST_SKIP_LARGE=1 valgrind --leak-check=full --track-origins=yes --error-exitcode=1 ./build/valgrind/lonehash_tests
 
-lua-test: build-release
-	tests/test_lua.sh "$$(pwd)" "$$(pwd)/build/release"
+lua-rock: build-release
+	scripts/build_lua_rock.sh
+
+lua-env: lua-rock
+	scripts/build_lua_rock.sh env
+
+lua-test: lua-rock
+	scripts/build_lua_rock.sh test
 
 lua-artifacts release-lua-artifacts:
 	scripts/package_lua.sh
@@ -105,11 +114,16 @@ release-matrix:
 
 finalize-slice: format test
 
-prerelease: finalize-slice lua-test asan valgrind package-source-smoke
+release-pipeline: test-all lua-rock lua-test package-source-smoke release-matrix
 
-prerelease-hardening: prerelease release-matrix
+prerelease: release-pipeline
 
-release: clean prerelease-hardening
+prerelease-hardening: prerelease
+
+release: clean release-pipeline
+
+print-release-upload-assets:
+	scripts/release_upload_args.sh
 
 print-release-version:
 	@scripts/release_version.sh

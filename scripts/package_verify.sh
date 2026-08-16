@@ -213,6 +213,8 @@ if [ ! -f "$manifest" ]; then
   fail "missing checksum manifest: $manifest"
 fi
 
+"$root/scripts/validate_luarocks.sh" "$dist" "$version"
+
 (cd "$dist" && sha256sum -c "$(basename "$manifest")")
 
 rm -rf "$tmp"

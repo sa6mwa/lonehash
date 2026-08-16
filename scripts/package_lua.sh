@@ -34,28 +34,19 @@ sed \
   -e "s/@LONEHASH_VERSION@/$version/g" \
   "$root/include/lonehash/lonehash.h.in" >"$stage/include/lonehash/lonehash.h"
 
-sed \
-  -e "s/@LONEHASH_LUA_VERSION@/$version/g" \
-  -e "s/@LONEHASH_LUA_ROCK_VERSION@/$version/g" \
-  "$root/lonehash.rockspec.in" >"$stage/lonehash-$version-1.rockspec"
+"$root/scripts/render_release_rockspec.sh" "$stage/lonehash-$version-1.rockspec"
 cp "$stage/lonehash-$version-1.rockspec" "$rockspec"
 
-cat >"$stage/RELEASE_MANIFEST" <<EOF
-LICENSE
-README.md
-VERSION
-RELEASE_MANIFEST
-lonehash-$version-1.rockspec
-include/lonehash/lonehash.h
-lua/lonehash.lua
-lua/lh.lua
-lua/lonehash/core.c
-lua/examples/hash_strings.lua
-lua/examples/hash_file.lua
-EOF
+"$root/scripts/stage_lua_rock_sources.sh" "$stage"
 
 tar -C "$stage_root" -czf "$dist/$source_archive" "lonehash-lua-$version"
 
 cp "$rockspec" "$rock_stage/"
-cp "$dist/$source_archive" "$rock_stage/"
-(cd "$rock_stage" && zip -q "$dist/$source_rock" "$(basename "$rockspec")" "$source_archive")
+sed -i "s#url = \"$source_archive\"#url = \"file://$dist/$source_archive\"#" \
+  "$rock_stage/$(basename "$rockspec")"
+(cd "$rock_stage" && luarocks --lua-version=5.5 pack "$(basename "$rockspec")")
+unpack="$rock_stage/unpack"
+mkdir -p "$unpack"
+unzip -q "$rock_stage/$source_rock" -d "$unpack"
+cp "$rockspec" "$unpack/$(basename "$rockspec")"
+(cd "$unpack" && zip -q "$dist/$source_rock" "$(basename "$rockspec")" "$source_archive")

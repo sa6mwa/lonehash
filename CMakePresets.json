@@ -34,6 +34,13 @@
       }
     },
     {
+      "name": "debug-lua",
+      "inherits": "debug",
+      "cacheVariables": {
+        "LONEHASH_BUILD_LUA": "ON"
+      }
+    },
+    {
       "name": "asan",
       "inherits": "base",
       "cacheVariables": {
@@ -147,6 +154,7 @@
   ],
   "buildPresets": [
     { "name": "debug", "configurePreset": "debug" },
+    { "name": "debug-lua", "configurePreset": "debug-lua" },
     { "name": "valgrind", "configurePreset": "valgrind" },
     { "name": "asan", "configurePreset": "asan" },
     { "name": "release", "configurePreset": "release" },
@@ -188,6 +196,11 @@
     {
       "name": "valgrind",
       "configurePreset": "valgrind",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "debug-lua",
+      "configurePreset": "debug-lua",
       "output": { "outputOnFailure": true }
     },
     {
