@@ -10,7 +10,7 @@ rm -rf "$tmp"
 mkdir -p "$tmp"
 tar -C "$tmp" -xzf "$dist/lonehash-$version.tar.gz"
 test "$(sed -n '1p' "$tmp/lonehash-$version/VERSION")" = "$version"
-if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+if [ "$(git -C "$root" rev-parse --show-toplevel 2>/dev/null || true)" = "$root" ]; then
   git -C "$root" ls-files --cached | sed "s#^#lonehash-$version/#" \
     >"$tmp/expected-manifest"
   printf '%s\n' "lonehash-$version/VERSION" \

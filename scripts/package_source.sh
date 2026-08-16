@@ -9,7 +9,7 @@ stage="$root/.cache/source/lonehash-$version"
 rm -rf "$stage"
 mkdir -p "$stage" "$dist"
 
-if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+if [ "$(git -C "$root" rev-parse --show-toplevel 2>/dev/null || true)" = "$root" ]; then
   git -C "$root" ls-files --cached >"$root/.cache/source-manifest"
 else
   if [ ! -f "$root/RELEASE_MANIFEST" ]; then

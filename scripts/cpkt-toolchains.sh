@@ -355,34 +355,34 @@ print_env() {
   IFS='|' read -r source root prefix sysroot <<EOF
 $candidate
 EOF
-  printf 'export CPKT_TARGET=%s\n' "$target"
-  printf 'export CPKT_TOOLCHAIN_SOURCE=%s\n' "$source"
-  printf 'export CPKT_TOOLCHAIN_ROOT=%s\n' "$root"
-  printf 'export CPKT_TOOLCHAIN_PREFIX=%s\n' "$prefix"
-  printf 'export CPKT_SYSROOT=%s\n' "$sysroot"
+  printf 'export CPKT_TARGET=%q\n' "$target"
+  printf 'export CPKT_TOOLCHAIN_SOURCE=%q\n' "$source"
+  printf 'export CPKT_TOOLCHAIN_ROOT=%q\n' "$root"
+  printf 'export CPKT_TOOLCHAIN_PREFIX=%q\n' "$prefix"
+  printf 'export CPKT_SYSROOT=%q\n' "$sysroot"
   if [ "$target" = arm64-apple-darwin ]; then
-    printf 'export CC=%s\n' "$root/bin/$prefix-clang"
-    printf 'export CXX=%s\n' "$root/bin/$prefix-clang++"
+    printf 'export CC=%q\n' "$root/bin/$prefix-clang"
+    printf 'export CXX=%q\n' "$root/bin/$prefix-clang++"
   else
-    printf 'export CC=%s\n' "$root/bin/$prefix-gcc"
-    printf 'export CXX=%s\n' "$root/bin/$prefix-g++"
+    printf 'export CC=%q\n' "$root/bin/$prefix-gcc"
+    printf 'export CXX=%q\n' "$root/bin/$prefix-g++"
   fi
-  printf 'export LD=%s\n' "$root/bin/$prefix-ld"
-  printf 'export AR=%s\n' "$root/bin/$prefix-ar"
-  printf 'export RANLIB=%s\n' "$root/bin/$prefix-ranlib"
-  printf 'export STRIP=%s\n' "$root/bin/$prefix-strip"
-  printf 'export NM=%s\n' "$root/bin/$prefix-nm"
+  printf 'export LD=%q\n' "$root/bin/$prefix-ld"
+  printf 'export AR=%q\n' "$root/bin/$prefix-ar"
+  printf 'export RANLIB=%q\n' "$root/bin/$prefix-ranlib"
+  printf 'export STRIP=%q\n' "$root/bin/$prefix-strip"
+  printf 'export NM=%q\n' "$root/bin/$prefix-nm"
   if [ "$target" != arm64-apple-darwin ]; then
-    printf 'export READELF=%s\n' "$root/bin/$prefix-readelf"
+    printf 'export READELF=%q\n' "$root/bin/$prefix-readelf"
   else
-    printf 'export OTOOL=%s\n' "$root/bin/$prefix-otool"
+    printf 'export OTOOL=%q\n' "$root/bin/$prefix-otool"
   fi
   if [ "$target" != arm64-apple-darwin ]; then
-    printf 'export CPKT_LIBSTDCXX_A=%s\n' "$(existing_compiler_file "$root/bin/$prefix-g++" libstdc++.a)"
-    printf 'export CPKT_LIBGCC_A=%s\n' "$(existing_compiler_file "$root/bin/$prefix-g++" libgcc.a)"
+    printf 'export CPKT_LIBSTDCXX_A=%q\n' "$(existing_compiler_file "$root/bin/$prefix-g++" libstdc++.a)"
+    printf 'export CPKT_LIBGCC_A=%q\n' "$(existing_compiler_file "$root/bin/$prefix-g++" libgcc.a)"
   else
-    printf 'export CPKT_CXX_RUNTIME=libc++\n'
-    printf 'export CPKT_STATIC_CXX_RUNTIME_ARCHIVES=not-applicable\n'
+    printf 'export CPKT_CXX_RUNTIME=%q\n' libc++
+    printf 'export CPKT_STATIC_CXX_RUNTIME_ARCHIVES=%q\n' not-applicable
   fi
 }
 

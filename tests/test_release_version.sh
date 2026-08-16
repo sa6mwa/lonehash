@@ -5,16 +5,7 @@ root=${1:?repository root is required}
 cd "$root"
 tmp="$root/.cache/release-version-test"
 rm -rf "$tmp"
-tag=
-ignored_tag=
-
-cleanup() {
-  rm -rf "$tmp"
-  if [[ -n "$tag" ]]; then
-    git tag -d "$tag" "$ignored_tag" >/dev/null 2>&1 || true
-  fi
-}
-trap cleanup EXIT HUP INT TERM
+trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 
 assert_cmake_version() {
   local build=$1 expected=$2
@@ -50,23 +41,20 @@ mkdir -p "$tmp/nested-source/scripts"
 cp "$root/scripts/release_version.sh" "$tmp/nested-source/scripts/"
 printf '6.7.8\n' >"$tmp/nested-source/VERSION"
 test "$("$tmp/nested-source/scripts/release_version.sh")" = 6.7.8
-if git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' | grep . >/dev/null; then
-  exit 0
+mkdir -p "$tmp/tagged-source/scripts"
+cp "$root/scripts/release_version.sh" "$tmp/tagged-source/scripts/"
+printf '99.99.99\n' >"$tmp/tagged-source/VERSION"
+git -C "$tmp/tagged-source" init -q
+git -C "$tmp/tagged-source" config user.email lifecycle@example.invalid
+git -C "$tmp/tagged-source" config user.name lifecycle-test
+git -C "$tmp/tagged-source" add VERSION scripts/release_version.sh
+git -C "$tmp/tagged-source" commit -qm 'test release version'
+git -C "$tmp/tagged-source" tag v99.99.99
+test "$("$tmp/tagged-source/scripts/release_version.sh")" = 99.99.99
+printf 'dirty\n' >>"$tmp/tagged-source/VERSION"
+if "$tmp/tagged-source/scripts/release_version.sh" >"$tmp/dirty-version.out" \
+  2>"$tmp/dirty-version.err"; then
+  echo 'release version script accepted a dirty tagged worktree' >&2
+  exit 1
 fi
-
-tag_patch=999999
-while git show-ref --verify --quiet "refs/tags/v99.99.$tag_patch" \
-  || git show-ref --verify --quiet "refs/tags/v99.99.$tag_patch-local"; do
-  tag_patch=$((tag_patch + 1))
-done
-tag="v99.99.$tag_patch"
-ignored_tag="$tag-local"
-git tag "$ignored_tag"
-test "$(scripts/release_version.sh)" = 0.0.0
-test "$(make --silent print-release-version)" = 0.0.0
-assert_cmake_version "$tmp/untagged" 0.0.0
-git tag -d "$ignored_tag" >/dev/null
-git tag "$tag"
-test "$(scripts/release_version.sh)" = "${tag#v}"
-test "$(make --silent print-release-version)" = "${tag#v}"
-assert_cmake_version "$tmp/tagged" "${tag#v}"
+grep 'requires a clean worktree' "$tmp/dirty-version.err" >/dev/null

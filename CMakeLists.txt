@@ -299,6 +299,16 @@ if(LONEHASH_BUILD_TESTS)
                    "${CMAKE_CURRENT_SOURCE_DIR}")
   set_tests_properties(lonehash.lua-rock-regeneration PROPERTIES LABELS "local;lifecycle;lua"
                                                                TIMEOUT 20)
+  add_test(NAME lonehash.source-package-nested
+           COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_source_package_nested.sh"
+                   "${CMAKE_CURRENT_SOURCE_DIR}")
+  set_tests_properties(lonehash.source-package-nested PROPERTIES LABELS "local;lifecycle"
+                                                               TIMEOUT 20)
+  add_test(NAME lonehash.toolchain-env-escaping
+           COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_toolchain_env_escaping.sh"
+                   "${CMAKE_CURRENT_SOURCE_DIR}")
+  set_tests_properties(lonehash.toolchain-env-escaping PROPERTIES LABELS "local;lifecycle"
+                                                                 TIMEOUT 20)
 endif()
 
 if(LONEHASH_INSTALL)
