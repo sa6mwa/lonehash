@@ -64,6 +64,7 @@ grep -F 'LONEHASH_HAVE_ARM_SHA2=$<BOOL:${LONEHASH_HAVE_ARM_SHA2}>' CMakeLists.tx
 grep -F 'WINDOWS_EXPORT_ALL_SYMBOLS ON' CMakeLists.txt >/dev/null
 grep -F '_CRT_SECURE_NO_WARNINGS' CMakeLists.txt >/dev/null
 grep -F 'ARCHIVE_OUTPUT_NAME' CMakeLists.txt >/dev/null
+grep -F 'lonehash_shared PROPERTIES ARCHIVE_OUTPUT_NAME lonehash)' CMakeLists.txt >/dev/null
 grep -F 'lonehash_cli_static' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_LUA_EXECUTABLE' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_LUA_SOURCE_INCLUDE_DIR' CMakeLists.txt >/dev/null
@@ -76,6 +77,7 @@ grep -F 'ctest --test-dir "$root/build/$preset" --output-on-failure' scripts/rel
 grep -F '"$STRIP" -g "$prefix/lib/liblonehash.a"' scripts/package.sh >/dev/null
 grep -F '_setmode(_fileno(stdin), _O_BINARY)' src/lh.c >/dev/null
 grep -F 'export DYLD_LIBRARY_PATH=' scripts/build_lua_rock.sh >/dev/null
+grep -F 'export PATH=' scripts/build_lua_rock.sh >/dev/null
 test -x scripts/stage_lua_rock_sources.sh
 test -x scripts/build_lua_rock.sh
 test -f include/lonehash/lonehash.h

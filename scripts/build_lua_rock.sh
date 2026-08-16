@@ -7,6 +7,7 @@ prefix="$root/build/lua-sdk"
 tree="$root/build/luarocks"
 sdk_include=
 sdk_lib=
+sdk_bin=
 
 require_lua55() {
   command -v lua >/dev/null 2>&1 || { echo "Lua 5.5.0 is required" >&2; exit 1; }
@@ -22,14 +23,17 @@ discover_sdk() {
     cmake --install "$build" --prefix "$prefix" >&2
     sdk_include="$prefix/include"
     sdk_lib="$prefix/lib"
+    sdk_bin="$prefix/bin"
     return
   fi
 
   if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists lonehash; then
     sdk_include=$(pkg-config --variable=includedir lonehash)
     sdk_lib=$(pkg-config --variable=libdir lonehash)
+    sdk_bin="$(pkg-config --variable=prefix lonehash)/bin"
   elif [[ -n "${LONEHASH_PREFIX:-}" ]]; then
     sdk_include="$LONEHASH_PREFIX/include"
+    sdk_bin="$LONEHASH_PREFIX/bin"
     if [[ -d "$LONEHASH_PREFIX/lib" ]]; then
       sdk_lib="$LONEHASH_PREFIX/lib"
     else
@@ -75,6 +79,7 @@ case "${1:-build}" in
     printf 'export LUA_CPATH=%q\n' "$tree/lib/lua/5.5/?.so;;"
     printf 'export LD_LIBRARY_PATH=%q\n' "$sdk_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     printf 'export DYLD_LIBRARY_PATH=%q\n' "$sdk_lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+    printf 'export PATH=%q\n' "$sdk_bin${PATH:+:$PATH}"
     ;;
   test)
     build_rock

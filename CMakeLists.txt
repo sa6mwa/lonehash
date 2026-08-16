@@ -162,8 +162,7 @@ if(LONEHASH_BUILD_SHARED)
                                WINDOWS_EXPORT_ALL_SYMBOLS ON
                                EXPORT_NAME shared)
   if(WIN32)
-    set_target_properties(lonehash_shared PROPERTIES ARCHIVE_OUTPUT_NAME
-                                                     lonehash_shared)
+    set_target_properties(lonehash_shared PROPERTIES ARCHIVE_OUTPUT_NAME lonehash)
   endif()
   target_link_options(
     lonehash_shared
