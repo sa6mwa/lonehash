@@ -3,16 +3,28 @@
 
 typedef unsigned int lh_u32;
 
+static int lh_sha256_ni_features_available(unsigned int leaf1_ecx,
+                                           unsigned int leaf7_ebx) {
+  return (leaf1_ecx & (1U << 9)) != 0U &&
+         (leaf1_ecx & (1U << 19)) != 0U &&
+         (leaf7_ebx & (1U << 29)) != 0U;
+}
+
 int lonehash_sha256_ni_available(void) {
   unsigned int eax;
   unsigned int ebx;
   unsigned int ecx;
   unsigned int edx;
+  unsigned int leaf1_ecx;
 
+  if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
+    return 0;
+  }
+  leaf1_ecx = ecx;
   if (!__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) {
     return 0;
   }
-  return (ebx & (1U << 29)) != 0U;
+  return lh_sha256_ni_features_available(leaf1_ecx, ebx);
 }
 
 static void lh_sha256_ni_round4(__m128i *state0, __m128i *state1, __m128i msg,

@@ -179,7 +179,7 @@ if(LONEHASH_BUILD_CLI)
   else()
     target_link_libraries(lh PRIVATE lonehash)
   endif()
-  if(LONEHASH_CLI_STATIC)
+  if(LONEHASH_CLI_STATIC AND TARGET lonehash_static)
     target_link_options(lh PRIVATE "$<$<NOT:$<PLATFORM_ID:Darwin>>:-static>")
   endif()
 endif()
@@ -252,6 +252,19 @@ if(LONEHASH_BUILD_TESTS)
                      "$<TARGET_FILE:lh>")
     set_tests_properties(lonehash.cli PROPERTIES LABELS "smoke;local" TIMEOUT
                                                  10)
+    add_test(NAME lonehash.shared-only-cli
+             COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_shared_only_cli.sh"
+                     "${CMAKE_CURRENT_SOURCE_DIR}")
+    set_tests_properties(lonehash.shared-only-cli PROPERTIES LABELS "local;lifecycle"
+                                                             TIMEOUT 20)
+  endif()
+  if(LONEHASH_HAVE_SHA_NI)
+    add_executable(lonehash_sha_ni_features tests/test_sha256_ni_features.c)
+    lonehash_configure_c89_target(lonehash_sha_ni_features)
+    target_compile_options(lonehash_sha_ni_features PRIVATE -msha -mssse3 -msse4.1)
+    add_test(NAME lonehash.sha-ni-features COMMAND lonehash_sha_ni_features)
+    set_tests_properties(lonehash.sha-ni-features PROPERTIES LABELS "unit;local"
+                                                               TIMEOUT 10)
   endif()
   if(TARGET lonehash_lua_core)
     add_test(NAME lonehash.lua
