@@ -119,14 +119,15 @@ function(lonehash_target_defaults target)
     ${target}
     PUBLIC $<BUILD_INTERFACE:${LONEHASH_PUBLIC_INCLUDE_DIR}>
            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+  target_compile_definitions(
+    ${target} PRIVATE LONEHASH_HAVE_SHA_NI=$<BOOL:${LONEHASH_HAVE_SHA_NI}>
+                      LONEHASH_HAVE_ARM_SHA2=$<BOOL:${LONEHASH_HAVE_ARM_SHA2}>)
   lonehash_configure_c89_target(${target})
   if(LONEHASH_HAVE_SHA_NI)
-    target_compile_definitions(${target} PRIVATE LONEHASH_HAVE_SHA_NI=1)
     set_source_files_properties(src/lonehash_sha256_ni.c PROPERTIES
                                 COMPILE_OPTIONS "-msha;-mssse3;-msse4.1")
   endif()
   if(LONEHASH_HAVE_ARM_SHA2)
-    target_compile_definitions(${target} PRIVATE LONEHASH_HAVE_ARM_SHA2=1)
     if(NOT LONEHASH_TARGET_ID MATCHES "apple-darwin$")
       set_source_files_properties(src/lonehash_sha256_armv8.c PROPERTIES
                                   COMPILE_OPTIONS "-march=armv8-a+crypto")
