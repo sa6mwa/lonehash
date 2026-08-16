@@ -6,9 +6,10 @@ build=$2
 lua_bin=${LUA:-lua}
 
 export LUA_PATH="$root/lua/?.lua;$root/lua/?/init.lua;;"
-export LUA_CPATH="$build/?.so;$build/?/core.so;;"
+export LUA_CPATH="$build/?.so;$build/?/core.so;$build/?.dll;$build/?/core.dll;;"
 export LD_LIBRARY_PATH="$build${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export DYLD_LIBRARY_PATH="$build${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+export PATH="$build${PATH:+:$PATH}"
 
 sha=$("$lua_bin" -e 'local h=require("lonehash"); io.write(h.sha256_hex("abc"))')
 test "$sha" = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"

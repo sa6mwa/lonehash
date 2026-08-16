@@ -296,10 +296,7 @@ while read -r _hash artifact; do
       scan_tree "$artifact" "$prefix"
       target_id=${artifact#lonehash-"$version"-}
       target_id=${target_id%.tar.gz}
-      case "$target_id" in
-        x86_64-linux-gnu) build_preset=release ;;
-        *) build_preset="$target_id-release" ;;
-      esac
+      build_preset="$target_id-release"
       eval "$("$root/scripts/discover_target_tools.sh" "$root/build/$build_preset" "$target_id")"
       case "$artifact" in
         *-arm64-apple-darwin.tar.gz) scan_darwin_runtime_paths "$artifact" "$prefix" "$OTOOL" ;;
@@ -323,10 +320,7 @@ while read -r _hash artifact; do
       scan_tree "$artifact" "$prefix"
       target_id=${artifact#lh-"$version"-}
       target_id=${target_id%.tar.gz}
-      case "$target_id" in
-        x86_64-linux-gnu) build_preset=release ;;
-        *) build_preset="$target_id-release" ;;
-      esac
+      build_preset="$target_id-release"
       eval "$("$root/scripts/discover_target_tools.sh" "$root/build/$build_preset" "$target_id")"
       case "$artifact" in
         *-arm64-apple-darwin.tar.gz) scan_darwin_runtime_paths "$artifact" "$prefix" "$OTOOL" ;;

@@ -291,6 +291,7 @@ if(LONEHASH_BUILD_LUA)
     PROPERTIES PREFIX ""
                OUTPUT_NAME core
                LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lonehash"
+               RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lonehash"
                BUILD_RPATH "$ORIGIN/..")
   configure_file(cmake/lh.sh.in "${CMAKE_CURRENT_BINARY_DIR}/lh.sh" @ONLY)
   file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/lh.sh"
