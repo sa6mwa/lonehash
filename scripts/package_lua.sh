@@ -7,6 +7,8 @@ major=$(printf '%s\n' "$version" | cut -d. -f1)
 minor=$(printf '%s\n' "$version" | cut -d. -f2)
 patch=$(printf '%s\n' "$version" | cut -d. -f3)
 dist="${LONEHASH_DIST_DIR:-$root/dist}"
+mkdir -p "$dist"
+dist=$(CDPATH= cd -- "$dist" && pwd)
 stage_root="$root/.cache/lua-source"
 stage="$stage_root/lonehash-lua-$version"
 rock_stage="$root/.cache/lua-rock"

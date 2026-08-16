@@ -31,3 +31,9 @@ if unzip -Z1 "$source_rock" | grep -Fx obsolete-file >/dev/null; then
   echo 'Lua source rock retained an obsolete entry after regeneration' >&2
   exit 1
 fi
+
+(cd "$tmp" && PATH="$fake_bin:$PATH" LONEHASH_DIST_DIR=relative-dist \
+  "$root/scripts/package_lua.sh")
+test -f "$tmp/relative-dist/lonehash-$version-1.rockspec"
+test -f "$tmp/relative-dist/lonehash-lua-$version.tar.gz"
+test -f "$tmp/relative-dist/lonehash-$version-1.src.rock"

@@ -9,6 +9,9 @@
 #ifdef _WIN32
 #include <fcntl.h>
 #include <io.h>
+#define LONEHASH_LUA_MODULE_API __declspec(dllexport)
+#else
+#define LONEHASH_LUA_MODULE_API
 #endif
 
 typedef struct lh_lua_sha256 {
@@ -370,7 +373,7 @@ static void lh_lua_new_metatable(lua_State *L, const char *name,
   lua_pop(L, 1);
 }
 
-int luaopen_lonehash_core(lua_State *L) {
+LONEHASH_LUA_MODULE_API int luaopen_lonehash_core(lua_State *L) {
   static const luaL_Reg sha256_methods[] = {
       {"reset", lh_lua_sha256_reset},
       {"update", lh_lua_sha256_update},

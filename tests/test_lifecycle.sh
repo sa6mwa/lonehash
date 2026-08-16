@@ -85,6 +85,8 @@ grep -F 'RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lonehash"' CMakeL
 grep -F '?@CMAKE_SHARED_MODULE_SUFFIX@' cmake/lh.sh.in >/dev/null
 grep -F '_setmode(_fileno(stdin), _O_BINARY)' lua/lonehash/core.c >/dev/null
 grep -F 'core._set_stdin_binary()' lua/lh.lua >/dev/null
+grep -F 'LONEHASH_LUA_MODULE_API int luaopen_lonehash_core' lua/lonehash/core.c >/dev/null
+grep -F 'dist=$(CDPATH= cd -- "$dist" && pwd)' scripts/package_lua.sh >/dev/null
 test -x scripts/stage_lua_rock_sources.sh
 test -x scripts/build_lua_rock.sh
 test -f include/lonehash/lonehash.h
