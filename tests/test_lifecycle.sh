@@ -67,6 +67,9 @@ grep -F 'ARCHIVE_OUTPUT_NAME' CMakeLists.txt >/dev/null
 grep -F 'lonehash_cli_static' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_LUA_EXECUTABLE' CMakeLists.txt >/dev/null
 grep -F 'LONEHASH_LUA_SOURCE_INCLUDE_DIR' CMakeLists.txt >/dev/null
+grep -F 'find_library(LONEHASH_LUA_LIBRARY' CMakeLists.txt >/dev/null
+grep -F '"${LONEHASH_LUA_LIBRARY}"' CMakeLists.txt >/dev/null
+grep -F 'if(WIN32)' CMakeLists.txt >/dev/null
 grep -F 'MSVC_RUNTIME_LIBRARY' CMakeLists.txt >/dev/null
 grep -F 'CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE' CMakeLists.txt >/dev/null
 grep -F 'ctest --test-dir "$root/build/$preset" --output-on-failure' scripts/release_matrix.sh >/dev/null

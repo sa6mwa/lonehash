@@ -251,6 +251,16 @@ if(LONEHASH_BUILD_LUA)
         "${LONEHASH_LUA_SOURCE_INCLUDE_DIR} does not provide Lua 5.5 headers for ${LONEHASH_LUA_EXECUTABLE}"
     )
   endif()
+  if(WIN32)
+    get_filename_component(LONEHASH_LUA_EXECUTABLE_DIR
+                           "${LONEHASH_LUA_EXECUTABLE}" DIRECTORY)
+    find_library(LONEHASH_LUA_LIBRARY
+                 NAMES lua5.5 lua-5.5 lua55 lua
+                 HINTS "${LONEHASH_LUA_EXECUTABLE_DIR}/../lib"
+                 PATHS /usr/local/lib /usr/lib
+                 PATH_SUFFIXES lua5.5 lua-5.5
+                 REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+  endif()
   set(LONEHASH_LUA_INCLUDE_DIR
       "${CMAKE_CURRENT_BINARY_DIR}/generated/host-lua-include")
   file(COPY "${LONEHASH_LUA_SOURCE_INCLUDE_DIR}/"
@@ -261,6 +271,9 @@ if(LONEHASH_BUILD_LUA)
                                      "${LONEHASH_GENERATED_INCLUDE_DIR}"
                                      "${LONEHASH_SOURCE_INCLUDE_DIR}")
   target_link_libraries(lonehash_lua_core PRIVATE lonehash_shared)
+  if(WIN32)
+    target_link_libraries(lonehash_lua_core PRIVATE "${LONEHASH_LUA_LIBRARY}")
+  endif()
   set_target_properties(lonehash_lua_core PROPERTIES C_STANDARD 99
                                                      C_STANDARD_REQUIRED ON)
   if(MSVC)
