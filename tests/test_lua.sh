@@ -28,6 +28,23 @@ test "$file_sha" = "$sha"
 cli_sha=$(printf abc | "$build/lh.sh" -sq)
 test "$cli_sha" = "$sha"
 
+stdin_mode_marker="$build/lua-stdin-binary-called"
+rm -f "$stdin_mode_marker"
+printf abc | LONEHASH_LH="$root/lua/lh.lua" LONEHASH_STDIN_MODE_MARKER="$stdin_mode_marker" \
+  "$lua_bin" -e '
+    local core = require("lonehash.core")
+    local set_stdin_binary = core._set_stdin_binary
+    core._set_stdin_binary = function()
+      local marker = assert(io.open(assert(os.getenv("LONEHASH_STDIN_MODE_MARKER")), "wb"))
+      marker:write("called")
+      marker:close()
+      return set_stdin_binary()
+    end
+    arg = { "-sq" }
+    dofile(assert(os.getenv("LONEHASH_LH")))
+  ' >/dev/null
+test "$(cat "$stdin_mode_marker")" = "called"
+
 printf abc | "$build/lh.sh" -sqz >"$build/lua-quiet-nul.out"
 quiet_nul_bytes=$(wc -c <"$build/lua-quiet-nul.out" | tr -d ' ')
 test "$quiet_nul_bytes" = "65"

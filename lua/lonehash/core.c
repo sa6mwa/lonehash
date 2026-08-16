@@ -3,7 +3,13 @@
 #include <lauxlib.h>
 #include <lua.h>
 
+#include <stdio.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
 
 typedef struct lh_lua_sha256 {
   lonehash_sha256 *hash;
@@ -15,6 +21,17 @@ typedef struct lh_lua_md5 {
 
 static int lh_lua_error(lua_State *L, lonehash_status status) {
   return luaL_error(L, "%s", lonehash_status_string(status));
+}
+
+/* Internal Lua CLI helper: preserve binary stdin on Windows CRT streams. */
+static int lh_lua_set_stdin_binary(lua_State *L) {
+  (void)L;
+#ifdef _WIN32
+  if (_setmode(_fileno(stdin), _O_BINARY) == -1) {
+    return luaL_error(L, "stdin: cannot enable binary mode");
+  }
+#endif
+  return 0;
 }
 
 static lonehash_sha256 *lh_lua_check_sha256(lua_State *L, int index) {
@@ -371,10 +388,12 @@ int luaopen_lonehash_core(lua_State *L) {
       {"digest", lh_lua_md5_digest}, {"digest_hex", lh_lua_md5_digest_hex},
       {"file", lh_lua_md5_file},     {"file_hex", lh_lua_md5_file_hex},
       {"__gc", lh_lua_md5_gc},       {0, 0}};
-  static const luaL_Reg module[] = {{"sha256", lh_lua_sha256_new},
-                                    {"md5", lh_lua_md5_new},
-                                    {"version", lh_lua_version},
-                                    {0, 0}};
+  static const luaL_Reg module[] = {
+      {"sha256", lh_lua_sha256_new},
+      {"md5", lh_lua_md5_new},
+      {"version", lh_lua_version},
+      {"_set_stdin_binary", lh_lua_set_stdin_binary},
+      {0, 0}};
 
   lh_lua_new_metatable(L, "lonehash.sha256", sha256_methods);
   lh_lua_new_metatable(L, "lonehash.md5", md5_methods);

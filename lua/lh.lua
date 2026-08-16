@@ -1,4 +1,5 @@
 local lonehash = require("lonehash")
+local core = require("lonehash.core")
 
 local function basename(path)
   return (path:gsub("\\", "/"):match("([^/]+)$")) or path
@@ -29,6 +30,7 @@ end
 
 local function hash_stdin(alg)
   local h = alg == "md5" and lonehash.md5() or lonehash.sha256()
+  core._set_stdin_binary()
   while true do
     local chunk, err = io.stdin:read(32768)
     if not chunk then
