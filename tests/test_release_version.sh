@@ -58,3 +58,11 @@ if "$tmp/tagged-source/scripts/release_version.sh" >"$tmp/dirty-version.out" \
   exit 1
 fi
 grep 'requires a clean worktree' "$tmp/dirty-version.err" >/dev/null
+git -C "$tmp/tagged-source" checkout -- VERSION
+printf untracked >"$tmp/tagged-source/untracked"
+if "$tmp/tagged-source/scripts/release_version.sh" >"$tmp/untracked-version.out" \
+  2>"$tmp/untracked-version.err"; then
+  echo 'release version script accepted an untracked file in a tagged worktree' >&2
+  exit 1
+fi
+grep 'requires a clean worktree' "$tmp/untracked-version.err" >/dev/null

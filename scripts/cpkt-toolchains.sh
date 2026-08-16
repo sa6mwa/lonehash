@@ -177,8 +177,11 @@ complete_apple_collection() {
     [ -x "$osxcross_root/bin/$osxcross_host-clang++" ] &&
     [ -x "$osxcross_root/bin/$osxcross_host-ld" ] &&
     [ -x "$osxcross_root/bin/$osxcross_host-ar" ] &&
+    [ -x "$osxcross_root/bin/$osxcross_host-ranlib" ] &&
+    [ -x "$osxcross_root/bin/$osxcross_host-strip" ] &&
     [ -x "$osxcross_root/bin/$osxcross_host-nm" ] &&
-    [ -x "$osxcross_root/bin/$osxcross_host-otool" ]
+    [ -x "$osxcross_root/bin/$osxcross_host-otool" ] &&
+    [ -x "$osxcross_root/bin/$osxcross_host-install_name_tool" ]
 }
 
 install_bootlin() {

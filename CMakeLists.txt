@@ -314,6 +314,11 @@ if(LONEHASH_BUILD_TESTS)
                    "${CMAKE_CURRENT_SOURCE_DIR}")
   set_tests_properties(lonehash.package-checksums-assets PROPERTIES LABELS "local;lifecycle"
                                                                    TIMEOUT 20)
+  add_test(NAME lonehash.apple-toolchain-discovery
+           COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_apple_toolchain_discovery.sh"
+                   "${CMAKE_CURRENT_SOURCE_DIR}")
+  set_tests_properties(lonehash.apple-toolchain-discovery PROPERTIES LABELS "local;lifecycle"
+                                                                    TIMEOUT 20)
 endif()
 
 if(LONEHASH_INSTALL)

@@ -21,7 +21,8 @@ if [ "$(git -C "$root" rev-parse --show-toplevel 2>/dev/null || true)" = "$root"
     # Lifecycle releases use only lightweight vX.Y.Z tags on HEAD.
     if is_semver "${tag#v}" && [ "${tag#v}" != "$tag" ] \
       && [ "$(git -C "$root" cat-file -t "refs/tags/$tag")" = commit ]; then
-      if ! git -C "$root" diff-index --quiet HEAD --; then
+      if ! git -C "$root" diff-index --quiet HEAD -- || \
+        [ -n "$(git -C "$root" ls-files --others --exclude-standard)" ]; then
         echo "release tag $tag requires a clean worktree" >&2
         exit 2
       fi

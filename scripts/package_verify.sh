@@ -160,7 +160,7 @@ verify_host_consumers() {
     $(PKG_CONFIG_PATH="$prefix/lib/pkgconfig" pkg-config --cflags --libs lonehash)
   LD_LIBRARY_PATH="$prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     "$consumer/pkgconfig/shared"
-  "$cc" -o "$consumer/pkgconfig/static" "$consumer/pkgconfig/main.c" \
+  "$cc" -static -o "$consumer/pkgconfig/static" "$consumer/pkgconfig/main.c" \
     $(PKG_CONFIG_PATH="$prefix/lib/pkgconfig" pkg-config --cflags --libs --static lonehash)
 
   mkdir -p "$consumer/cmake"
