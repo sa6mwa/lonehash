@@ -16,7 +16,7 @@ if [ "${LONEHASH_VERSION_OVERRIDE:-}" != "" ]; then
   exit 0
 fi
 
-if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+if [ "$(git -C "$root" rev-parse --show-toplevel 2>/dev/null || true)" = "$root" ]; then
   for tag in $(git -C "$root" tag --points-at HEAD --list); do
     # Lifecycle releases use only lightweight vX.Y.Z tags on HEAD.
     if is_semver "${tag#v}" && [ "${tag#v}" != "$tag" ] \

@@ -5,7 +5,16 @@ root=${1:?repository root is required}
 cd "$root"
 tmp="$root/.cache/release-version-test"
 rm -rf "$tmp"
-trap 'rm -rf "$tmp"; git tag -d v99.99.99 v99.99.99-local >/dev/null 2>&1 || true' EXIT HUP INT TERM
+tag=
+ignored_tag=
+
+cleanup() {
+  rm -rf "$tmp"
+  if [[ -n "$tag" ]]; then
+    git tag -d "$tag" "$ignored_tag" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT HUP INT TERM
 
 assert_cmake_version() {
   local build=$1 expected=$2
@@ -37,19 +46,27 @@ if cmake -S "$root" -B "$tmp/invalid-override" -G Ninja \
   echo 'CMake accepted an invalid release version override' >&2
   exit 1
 fi
+mkdir -p "$tmp/nested-source/scripts"
+cp "$root/scripts/release_version.sh" "$tmp/nested-source/scripts/"
+printf '6.7.8\n' >"$tmp/nested-source/VERSION"
+test "$("$tmp/nested-source/scripts/release_version.sh")" = 6.7.8
 if git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' | grep . >/dev/null; then
   exit 0
 fi
 
-tag=v99.99.99
-git tag -d "$tag" >/dev/null 2>&1 || true
-git tag -d v99.99.99-local >/dev/null 2>&1 || true
-git tag v99.99.99-local
+tag_patch=999999
+while git show-ref --verify --quiet "refs/tags/v99.99.$tag_patch" \
+  || git show-ref --verify --quiet "refs/tags/v99.99.$tag_patch-local"; do
+  tag_patch=$((tag_patch + 1))
+done
+tag="v99.99.$tag_patch"
+ignored_tag="$tag-local"
+git tag "$ignored_tag"
 test "$(scripts/release_version.sh)" = 0.0.0
 test "$(make --silent print-release-version)" = 0.0.0
 assert_cmake_version "$tmp/untagged" 0.0.0
-git tag -d v99.99.99-local >/dev/null
+git tag -d "$ignored_tag" >/dev/null
 git tag "$tag"
-test "$(scripts/release_version.sh)" = 99.99.99
-test "$(make --silent print-release-version)" = 99.99.99
-assert_cmake_version "$tmp/tagged" 99.99.99
+test "$(scripts/release_version.sh)" = "${tag#v}"
+test "$(make --silent print-release-version)" = "${tag#v}"
+assert_cmake_version "$tmp/tagged" "${tag#v}"
